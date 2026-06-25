@@ -6,9 +6,9 @@ export default function Dashboard() {
     leads: 0, students: 0, classes: 0,
     revenue: 0, unpaid: 0, teachers: 0,
   })
-  const [recentLeads, setRecentLeads]     = useState([])
-  const [unpaidList, setUnpaidList]       = useState([])
-  const [loading, setLoading]             = useState(true)
+  const [recentLeads, setRecentLeads] = useState([])
+  const [unpaidList, setUnpaidList]   = useState([])
+  const [loading, setLoading]         = useState(true)
 
   useEffect(() => { fetchDashboard() }, [])
 
@@ -53,12 +53,12 @@ export default function Dashboard() {
   }
 
   const STATUS_COLORS = {
-    moi: 'bg-blue-100 text-blue-700',
+    moi:         'bg-blue-100 text-blue-700',
     dang_tu_van: 'bg-yellow-100 text-yellow-700',
-    thu_lop: 'bg-purple-100 text-purple-700',
-    nhat_hoc: 'bg-green-100 text-green-700',
-    tu_choi: 'bg-red-100 text-red-700',
-    bao_luu: 'bg-gray-100 text-gray-600',
+    thu_lop:     'bg-purple-100 text-purple-700',
+    nhat_hoc:    'bg-green-100 text-green-700',
+    tu_choi:     'bg-red-100 text-red-700',
+    bao_luu:     'bg-gray-100 text-gray-600',
   }
 
   const STATUS_LABELS = {
@@ -73,17 +73,6 @@ export default function Dashboard() {
   )
 
   return (
-     <>
-    <p style={{background:'red', color:'white', padding:'10px'}}>
-      VERSION MỚI - MOBILE TEST
-    </p>
-    <div className="p-6 space-y-6">
-      {/* phần còn lại giữ nguyên */}
-    </div>
-  </>
-)
-
-
     <div className="p-6 space-y-6">
       {/* Tiêu đề */}
       <div>
@@ -92,12 +81,12 @@ export default function Dashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {[
-          { label: 'Leads mới',      value: stats.leads,    color: 'text-blue-600',   bg: 'bg-blue-50',   icon: '🎯' },
-          { label: 'Học viên',       value: stats.students, color: 'text-green-600',  bg: 'bg-green-50',  icon: '👨‍🎓' },
-          { label: 'Lớp đang học',   value: stats.classes,  color: 'text-purple-600', bg: 'bg-purple-50', icon: '🏫' },
-          { label: 'Giáo viên',      value: stats.teachers, color: 'text-amber-600',  bg: 'bg-amber-50',  icon: '👩‍🏫' },
+          { label: 'Leads mới',    value: stats.leads,    color: 'text-blue-600',   bg: 'bg-blue-50',   icon: '🎯' },
+          { label: 'Học viên',     value: stats.students, color: 'text-green-600',  bg: 'bg-green-50',  icon: '👨‍🎓' },
+          { label: 'Lớp đang học', value: stats.classes,  color: 'text-purple-600', bg: 'bg-purple-50', icon: '🏫' },
+          { label: 'Giáo viên',    value: stats.teachers, color: 'text-amber-600',  bg: 'bg-amber-50',  icon: '👩‍🏫' },
           { label: 'Đã thu',
             value: stats.revenue.toLocaleString('vi-VN') + 'đ',
             color: 'text-green-600', bg: 'bg-green-50', icon: '💰', small: true },
@@ -118,7 +107,7 @@ export default function Dashboard() {
       </div>
 
       {/* 2 cột bên dưới */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
 
         {/* Leads mới nhất */}
         <div className="bg-white rounded-xl border border-gray-200">
