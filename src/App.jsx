@@ -22,7 +22,6 @@ const NAV_ITEMS = [
   { to: '/revenue',    label: 'Doanh thu',  icon: '📈', adminOnly: true  },
 ]
 
-// Bottom nav mobile — 5 mục chính
 const BOTTOM_NAV = [
   { to: '/',           label: 'Tổng quan',  icon: '📊' },
   { to: '/leads',      label: 'Leads',      icon: '🎯' },
@@ -33,7 +32,7 @@ const BOTTOM_NAV = [
 
 function Sidebar({ isAdmin, user, profile, signOut }) {
   return (
-    <aside className="hidden md:flex w-56 bg-white border-r border-gray-200 flex-col h-screen sticky top-0 shrink-0">
+    <aside className="hidden lg:flex w-56 bg-white border-r border-gray-200 flex-col h-screen sticky top-0 shrink-0">
       <div className="px-5 py-4 border-b border-gray-200">
         <h1 className="text-base font-semibold text-gray-800">🎓 TNT English</h1>
         <p className="text-xs text-gray-400 mt-0.5">Quản lý trung tâm</p>
@@ -96,7 +95,7 @@ function MobileHeader({ user, profile, signOut }) {
 
   return (
     <>
-      <header className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40 px-4 py-3 flex items-center justify-between">
+      <header className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xl">🎓</span>
           <div>
@@ -143,7 +142,6 @@ function MobileHeader({ user, profile, signOut }) {
         </div>
       </header>
 
-      {/* Overlay đóng menu */}
       {showMenu && (
         <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
       )}
@@ -151,9 +149,9 @@ function MobileHeader({ user, profile, signOut }) {
   )
 }
 
-function BottomNav({ isAdmin }) {
+function BottomNav() {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 safe-area-pb">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
       <div className="flex">
         {BOTTOM_NAV.map(item => (
           <NavLink
@@ -169,7 +167,9 @@ function BottomNav({ isAdmin }) {
             {({ isActive }) => (
               <>
                 <span className="text-xl leading-none">{item.icon}</span>
-                <span className={`text-xs mt-0.5 ${isActive ? 'font-semibold text-blue-600' : 'text-gray-400'}`}>
+                <span className={`text-xs mt-0.5 ${
+                  isActive ? 'font-semibold text-blue-600' : 'text-gray-400'
+                }`}>
                   {item.label}
                 </span>
                 {isActive && <div className="w-1 h-1 rounded-full bg-blue-600 mt-0.5" />}
@@ -188,16 +188,12 @@ function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar desktop */}
       <Sidebar isAdmin={isAdmin} user={user} profile={profile} signOut={signOut} />
 
-      {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header mobile */}
         <MobileHeader user={user} profile={profile} signOut={signOut} />
 
-        {/* Content */}
-        <main className="flex-1 overflow-auto pb-16 md:pb-0 pt-14 md:pt-0">
+        <main className="flex-1 overflow-auto pb-16 lg:pb-0 pt-14 lg:pt-0">
           <Routes>
             <Route path="/"           element={<Dashboard />} />
             <Route path="/leads"      element={<Leads />} />
@@ -205,13 +201,12 @@ function Layout() {
             <Route path="/classes"    element={<Classes />} />
             <Route path="/teachers"   element={<Teachers />} />
             <Route path="/attendance" element={<Attendance />} />
-            <Route path="/payments"   element={isAdmin ? <Payments />   : <Navigate to="/" replace />} />
-            <Route path="/revenue"    element={isAdmin ? <Revenue />    : <Navigate to="/" replace />} />
+            <Route path="/payments"   element={isAdmin ? <Payments />  : <Navigate to="/" replace />} />
+            <Route path="/revenue"    element={isAdmin ? <Revenue />   : <Navigate to="/" replace />} />
           </Routes>
         </main>
 
-        {/* Bottom nav mobile */}
-        <BottomNav isAdmin={isAdmin} />
+        <BottomNav />
       </div>
     </div>
   )
