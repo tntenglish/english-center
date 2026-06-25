@@ -32,7 +32,7 @@ const BOTTOM_NAV = [
 
 function Sidebar({ isAdmin, user, profile, signOut }) {
   return (
-    <aside className="hidden lg:flex w-56 bg-white border-r border-gray-200 flex-col h-screen sticky top-0 shrink-0">
+    <aside className="desktop-only w-56 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 shrink-0">
       <div className="px-5 py-4 border-b border-gray-200">
         <h1 className="text-base font-semibold text-gray-800">🎓 TNT English</h1>
         <p className="text-xs text-gray-400 mt-0.5">Quản lý trung tâm</p>
@@ -95,7 +95,7 @@ function MobileHeader({ user, profile, signOut }) {
 
   return (
     <>
-      <header className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40 px-4 py-3 flex items-center justify-between">
+      <header className="mobile-only fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xl">🎓</span>
           <div>
@@ -141,7 +141,6 @@ function MobileHeader({ user, profile, signOut }) {
           </div>
         </div>
       </header>
-
       {showMenu && (
         <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
       )}
@@ -151,7 +150,7 @@ function MobileHeader({ user, profile, signOut }) {
 
 function BottomNav() {
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+    <nav className="mobile-only fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
       <div className="flex">
         {BOTTOM_NAV.map(item => (
           <NavLink
@@ -193,7 +192,7 @@ function Layout() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <MobileHeader user={user} profile={profile} signOut={signOut} />
 
-        <main className="flex-1 overflow-auto pb-16 lg:pb-0 pt-14 lg:pt-0">
+        <main className="flex-1 overflow-auto main-padding">
           <Routes>
             <Route path="/"           element={<Dashboard />} />
             <Route path="/leads"      element={<Leads />} />
