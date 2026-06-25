@@ -73,6 +73,9 @@ export default function Dashboard() {
   )
 
   return (
+    <p style={{background:'red', color:'white', padding:'10px'}}>
+  VERSION MỚI - MOBILE TEST
+</p>
     <div className="p-6 space-y-6">
       {/* Tiêu đề */}
       <div>
