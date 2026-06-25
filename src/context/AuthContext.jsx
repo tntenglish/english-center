@@ -37,7 +37,7 @@ async function signInWithGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin + '/'
+      redirectTo: 'https://english-center-gray.vercel.app/'
     }
   })
   if (error) console.error('Lỗi đăng nhập:', error)
