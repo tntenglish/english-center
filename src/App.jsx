@@ -219,6 +219,8 @@ function Layout() {
   const { user, profile, signOut } = useAuth()
   const isMobile = useIsMobile()
   const isAdmin = profile?.role === 'admin'
+   console.log('isMobile:', isMobile, 'width:', window.innerWidth)
+
 
   return (
     <div style={{display:'flex', height:'100vh', background:'#f9fafb'}}>
