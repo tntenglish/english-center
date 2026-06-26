@@ -219,7 +219,7 @@ function Layout() {
   const { user, profile, signOut } = useAuth()
   const isMobile = useIsMobile()
   const isAdmin = profile?.role === 'admin'
-   console.log('isMobile:', isMobile, 'width:', window.innerWidth)
+
 
 
   return (
