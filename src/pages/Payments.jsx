@@ -32,57 +32,242 @@ export default function Payments() {
   const [saving, setSaving]     = useState(false)
   const [search, setSearch]     = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [syncing, setSyncing]   = useState(false)
+
+  // Tính toán thống kê
+  const totalPaid = payments
+    .filter(p => p.status === 'da_thanh_toan')
+    .reduce((sum, p) => sum + Number(p.final_amount || p.amount), 0)
+
+  const totalUnpaid = payments
+    .filter(p => p.status === 'chua_thanh_toan')
+    .reduce((sum, p) => sum + Number(p.final_amount || p.amount), 0)
+
+  const totalPayments = payments.length
 
   useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
     setLoading(true)
-    const [p, s, c] = await Promise.all([
-      supabase.from('payments').select(`
-        *, students(full_name, phone), classes(name)
-      `).order('created_at', { ascending: false }),
-      supabase.from('students').select('id, full_name').eq('status', 'dang_hoc'),
-      supabase.from('classes').select('id, name').eq('status', 'dang_hoc'),
-    ])
-    setPayments(p.data || [])
-    setStudents(s.data || [])
-    setClasses(c.data || [])
+    try {
+      const [p, s, c] = await Promise.all([
+        supabase.from('payments').select(`
+          *, 
+          students(full_name, phone, tuition_paid), 
+          classes(name)
+        `).order('created_at', { ascending: false }),
+        supabase.from('students').select('id, full_name, tuition_paid').eq('status', 'dang_hoc'),
+        supabase.from('classes').select('id, name').eq('status', 'dang_hoc'),
+      ])
+      
+      setPayments(p.data || [])
+      setStudents(s.data || [])
+      setClasses(c.data || [])
+    } catch (error) {
+      console.error('Lỗi fetchAll:', error)
+    }
     setLoading(false)
   }
 
+  // Hàm đồng bộ: Cập nhật tuition_paid cho học viên dựa trên payments
+  async function syncStudentPayment(studentId) {
+    try {
+      // Tính tổng số tiền đã thanh toán của học viên
+      const { data: studentPayments } = await supabase
+        .from('payments')
+        .select('final_amount')
+        .eq('student_id', studentId)
+        .eq('status', 'da_thanh_toan')
+
+      const totalPaidAmount = studentPayments?.reduce((sum, p) => sum + Number(p.final_amount), 0) || 0
+
+      // Cập nhật tuition_paid cho học viên
+      await supabase
+        .from('students')
+        .update({ 
+          tuition_paid: totalPaidAmount,
+          tuition_fee: totalPaidAmount
+        })
+        .eq('id', studentId)
+
+      return totalPaidAmount
+    } catch (error) {
+      console.error('Lỗi syncStudentPayment:', error)
+      return 0
+    }
+  }
+
   async function savePayment() {
-    if (!form.student_id) return alert('Vui lòng chọn học viên!')
-    if (!form.amount)     return alert('Vui lòng nhập số tiền!')
+    if (!form.student_id) {
+      alert('Vui lòng chọn học viên!')
+      return
+    }
+    if (!form.amount || Number(form.amount) <= 0) {
+      alert('Vui lòng nhập số tiền hợp lệ!')
+      return
+    }
+    
     setSaving(true)
-    const payload = { ...form }
-    if (!payload.class_id) delete payload.class_id
-    if (!payload.paid_at)  delete payload.paid_at
-    if (payload.status === 'da_thanh_toan' && !payload.paid_at) {
-      payload.paid_at = new Date().toISOString()
+    try {
+      const finalAmount = Number(form.amount) - Number(form.discount || 0)
+      const payload = {
+        student_id: form.student_id,
+        class_id: form.class_id || null,
+        amount: Number(form.amount),
+        discount: Number(form.discount || 0),
+        final_amount: finalAmount,
+        method: form.method || 'tien_mat',
+        status: form.status || 'chua_thanh_toan',
+        note: form.note || '',
+        paid_at: form.status === 'da_thanh_toan' ? new Date().toISOString() : null
+      }
+
+      let result
+      if (form.id) {
+        result = await supabase.from('payments').update(payload).eq('id', form.id)
+      } else {
+        result = await supabase.from('payments').insert(payload)
+      }
+
+      if (result.error) {
+        alert(`❌ Lỗi: ${result.error.message}`)
+        setSaving(false)
+        return
+      }
+
+      // Đồng bộ tuition_paid cho học viên
+      await syncStudentPayment(form.student_id)
+
+      setSaving(false)
+      setShowForm(false)
+      setForm(EMPTY_FORM)
+      
+      await fetchAll()
+      alert('✅ Đã lưu hoá đơn và cập nhật học phí!')
+
+    } catch (error) {
+      alert(`❌ Lỗi: ${error.message}`)
+      setSaving(false)
     }
-    if (form.id) {
-      await supabase.from('payments').update(payload).eq('id', form.id)
-    } else {
-      await supabase.from('payments').insert(payload)
-    }
-    setSaving(false)
-    setShowForm(false)
-    setForm(EMPTY_FORM)
-    fetchAll()
   }
 
   async function deletePayment(id) {
     if (!confirm('Xoá hoá đơn này?')) return
-    await supabase.from('payments').delete().eq('id', id)
-    fetchAll()
+    
+    try {
+      const { data: paymentData } = await supabase
+        .from('payments')
+        .select('student_id, final_amount, status')
+        .eq('id', id)
+        .single()
+
+      await supabase.from('payments').delete().eq('id', id)
+
+      // Đồng bộ lại tuition_paid cho học viên
+      if (paymentData) {
+        await syncStudentPayment(paymentData.student_id)
+      }
+
+      await fetchAll()
+      alert('✅ Đã xóa hoá đơn!')
+    } catch (error) {
+      alert(`❌ Lỗi: ${error.message}`)
+    }
   }
 
   async function markPaid(payment) {
-    await supabase.from('payments').update({
-      status: 'da_thanh_toan',
-      paid_at: new Date().toISOString()
-    }).eq('id', payment.id)
-    fetchAll()
+    try {
+      const finalAmount = Number(payment.final_amount || payment.amount)
+      
+      await supabase
+        .from('payments')
+        .update({
+          status: 'da_thanh_toan',
+          paid_at: new Date().toISOString()
+        })
+        .eq('id', payment.id)
+
+      // Đồng bộ tuition_paid cho học viên
+      await syncStudentPayment(payment.student_id)
+
+      await fetchAll()
+      alert('✅ Đã thu tiền và cập nhật học phí!')
+    } catch (error) {
+      alert(`❌ Lỗi: ${error.message}`)
+    }
+  }
+
+  // Hàm cập nhật trạng thái thanh toán từ học viên
+  async function toggleStudentPayment(studentId, currentStatus) {
+    try {
+      const newStatus = !currentStatus
+      
+      if (newStatus) {
+        // Nếu tick "Đã đóng", tạo hóa đơn tự động
+        const { data: student } = await supabase
+          .from('students')
+          .select('full_name, tuition_fee')
+          .eq('id', studentId)
+          .single()
+
+        // Kiểm tra xem đã có hóa đơn cho học viên này chưa
+        const { data: existingPayment } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('student_id', studentId)
+          .eq('status', 'da_thanh_toan')
+          .maybeSingle()
+
+        if (!existingPayment && student) {
+          // Tạo hóa đơn mới
+          const amount = student.tuition_fee || 0
+          await supabase
+            .from('payments')
+            .insert({
+              student_id: studentId,
+              amount: amount,
+              final_amount: amount,
+              status: 'da_thanh_toan',
+              method: 'tien_mat',
+              paid_at: new Date().toISOString(),
+              note: 'Tự động từ tick "Đã đóng"'
+            })
+        }
+
+        // Cập nhật tuition_paid
+        await supabase
+          .from('students')
+          .update({ 
+            tuition_paid: 1,
+            tuition_fee: 1
+          })
+          .eq('id', studentId)
+
+        // Đồng bộ lại
+        await syncStudentPayment(studentId)
+
+      } else {
+        // Nếu bỏ tick "Đã đóng", xóa hóa đơn tương ứng
+        await supabase
+          .from('payments')
+          .delete()
+          .eq('student_id', studentId)
+          .eq('status', 'da_thanh_toan')
+
+        await supabase
+          .from('students')
+          .update({ 
+            tuition_paid: 0,
+            tuition_fee: 0
+          })
+          .eq('id', studentId)
+      }
+
+      await fetchAll()
+      alert('✅ Đã cập nhật trạng thái học phí!')
+    } catch (error) {
+      alert(`❌ Lỗi: ${error.message}`)
+    }
   }
 
   const filtered = payments.filter(p => {
@@ -91,14 +276,6 @@ export default function Payments() {
     const matchStatus = filterStatus ? p.status === filterStatus : true
     return matchSearch && matchStatus
   })
-
-  const totalPaid = payments
-    .filter(p => p.status === 'da_thanh_toan')
-    .reduce((sum, p) => sum + Number(p.final_amount || p.amount), 0)
-
-  const totalUnpaid = payments
-    .filter(p => p.status === 'chua_thanh_toan')
-    .reduce((sum, p) => sum + Number(p.final_amount || p.amount), 0)
 
   const renderMobileCard = (payment) => (
     <div key={payment.id} style={{
@@ -163,7 +340,16 @@ export default function Payments() {
           </button>
         )}
         <button 
-          onClick={() => { setForm({...payment, class_id: payment.class_id || '', paid_at: ''}); setShowForm(true) }}
+          onClick={() => { 
+            setForm({
+              ...payment, 
+              class_id: payment.class_id || '', 
+              paid_at: payment.paid_at || '',
+              amount: payment.amount || '',
+              discount: payment.discount || '0'
+            }); 
+            setShowForm(true) 
+          }}
           style={{
             padding: '6px 12px',
             fontSize: '11px',
@@ -235,6 +421,7 @@ export default function Payments() {
         </button>
       </div>
 
+      {/* Thống kê */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr',
@@ -263,30 +450,20 @@ export default function Payments() {
             {totalUnpaid.toLocaleString('vi-VN')}đ
           </p>
         </div>
-        {!isMobile && (
-          <div style={{
-            background: 'white',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb',
-            padding: '16px'
-          }}>
-            <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Tổng hoá đơn</p>
-            <p style={{ fontSize: '20px', fontWeight: 600, color: '#1f2937' }}>{payments.length}</p>
-          </div>
-        )}
-        {isMobile && (
-          <div style={{
-            background: 'white',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb',
-            padding: '12px'
-          }}>
-            <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Tổng hoá đơn</p>
-            <p style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>{payments.length}</p>
-          </div>
-        )}
+        <div style={{
+          background: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          padding: isMobile ? '12px' : '16px'
+        }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Tổng hoá đơn</p>
+          <p style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 600, color: '#1f2937' }}>
+            {totalPayments}
+          </p>
+        </div>
       </div>
 
+      {/* Search và Filter */}
       <div style={{
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
@@ -359,6 +536,7 @@ export default function Payments() {
         </div>
       </div>
 
+      {/* Danh sách hóa đơn */}
       {isMobile ? (
         <div>
           {loading ? (
@@ -379,7 +557,7 @@ export default function Payments() {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
             <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
               <tr>
-                {['Học viên','Lớp học','Học phí','Giảm giá','Thực thu','Hình thức','Trạng thái',''].map(h => (
+                {['Học viên','Lớp học','Học phí','Giảm giá','Thực thu','Hình thức','Trạng thái','Thao tác'].map(h => (
                   <th key={h} style={{
                     textAlign: 'left',
                     padding: '12px 16px',
@@ -439,7 +617,16 @@ export default function Payments() {
                         </button>
                       )}
                       <button 
-                        onClick={() => { setForm({...p, class_id: p.class_id || '', paid_at: ''}); setShowForm(true) }}
+                        onClick={() => { 
+                          setForm({
+                            ...p, 
+                            class_id: p.class_id || '', 
+                            paid_at: p.paid_at || '',
+                            amount: p.amount || '',
+                            discount: p.discount || '0'
+                          }); 
+                          setShowForm(true) 
+                        }}
                         style={{
                           padding: '4px 10px',
                           fontSize: '11px',
@@ -473,6 +660,7 @@ export default function Payments() {
         </div>
       )}
 
+      {/* Form tạo hóa đơn */}
       {showForm && (
         <div style={{
           position: 'fixed',
@@ -666,7 +854,10 @@ export default function Payments() {
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
               <button 
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false)
+                  setForm(EMPTY_FORM)
+                }}
                 style={{
                   flex: 1,
                   padding: '10px',

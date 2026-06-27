@@ -30,7 +30,7 @@ export default function Login() {
         // Kiểm tra xem user có profile không
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, must_change_password')
           .eq('id', data.user.id)
           .single()
 
@@ -41,15 +41,8 @@ export default function Login() {
           return
         }
 
-        // Kiểm tra nếu là lần đăng nhập đầu tiên (chưa đổi mật khẩu)
-        const { data: userData } = await supabase.auth.getUser()
-        const createdAt = new Date(userData.user.created_at)
-        const now = new Date()
-        const hoursDiff = (now - createdAt) / (1000 * 60 * 60)
-
-        // Nếu user được tạo trong vòng 24h và chưa đổi mật khẩu
-        // Chuyển hướng đến trang đổi mật khẩu
-        if (hoursDiff < 24) {
+        // Kiểm tra nếu cần đổi mật khẩu
+        if (profile.must_change_password === true) {
           navigate('/reset-password')
         } else {
           navigate('/')
@@ -79,6 +72,7 @@ export default function Login() {
         width: '100%',
         boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
       }}>
+        {/* Logo và tiêu đề */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ fontSize: '48px', marginBottom: '8px' }}>🎓</div>
           <h1 style={{ 
@@ -98,6 +92,7 @@ export default function Login() {
           </p>
         </div>
 
+        {/* Form đăng nhập */}
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '16px' }}>
             <label style={{
@@ -195,6 +190,7 @@ export default function Login() {
           </button>
         </form>
 
+        {/* Footer */}
         <div style={{
           textAlign: 'center',
           marginTop: '20px',

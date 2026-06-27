@@ -26,20 +26,44 @@ export default function ResetPassword() {
     setMessage('')
 
     try {
+      // Cập nhật mật khẩu mới
       const { error } = await supabase.auth.updateUser({
         password: password
       })
 
       if (error) {
-        setMessage(`Lỗi: ${error.message}`)
-      } else {
-        setMessage('✅ Đổi mật khẩu thành công! Vui lòng đăng nhập lại.')
-        setTimeout(() => {
-          navigate('/login')
-        }, 2000)
+        setMessage(`❌ Lỗi: ${error.message}`)
+        setLoading(false)
+        return
       }
+
+      // Lấy user hiện tại
+      const { data: userData } = await supabase.auth.getUser()
+      
+      if (userData?.user) {
+        // Cập nhật must_change_password = false trong profiles
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ must_change_password: false })
+          .eq('id', userData.user.id)
+
+        if (profileError) {
+          console.error('Lỗi cập nhật profile:', profileError)
+          // Vẫn tiếp tục vì mật khẩu đã được đổi
+        }
+      }
+
+      setMessage('✅ Đổi mật khẩu thành công! Vui lòng đăng nhập lại.')
+      
+      // Đăng xuất sau khi đổi mật khẩu
+      await supabase.auth.signOut()
+      
+      setTimeout(() => {
+        navigate('/login')
+      }, 2000)
+
     } catch (error) {
-      setMessage(`Lỗi: ${error.message}`)
+      setMessage(`❌ Lỗi: ${error.message}`)
     }
 
     setLoading(false)
@@ -86,7 +110,7 @@ export default function ResetPassword() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu mới"
+              placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)"
               required
               style={{
                 width: '100%',
@@ -94,8 +118,11 @@ export default function ResetPassword() {
                 fontSize: '14px',
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
-                outline: 'none'
+                outline: 'none',
+                transition: 'border-color 0.2s'
               }}
+              onFocus={e => e.target.style.borderColor = '#2563eb'}
+              onBlur={e => e.target.style.borderColor = '#e5e7eb'}
             />
           </div>
 
@@ -121,8 +148,11 @@ export default function ResetPassword() {
                 fontSize: '14px',
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
-                outline: 'none'
+                outline: 'none',
+                transition: 'border-color 0.2s'
               }}
+              onFocus={e => e.target.style.borderColor = '#2563eb'}
+              onBlur={e => e.target.style.borderColor = '#e5e7eb'}
             />
           </div>
 
@@ -133,7 +163,8 @@ export default function ResetPassword() {
               marginBottom: '16px',
               fontSize: '14px',
               background: message.includes('✅') ? '#d1fae5' : '#fee2e2',
-              color: message.includes('✅') ? '#065f46' : '#dc2626'
+              color: message.includes('✅') ? '#065f46' : '#dc2626',
+              border: message.includes('✅') ? '1px solid #a7f3d0' : '1px solid #fecaca'
             }}>
               {message}
             </div>
@@ -152,8 +183,11 @@ export default function ResetPassword() {
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              opacity: loading ? 0.6 : 1
+              opacity: loading ? 0.6 : 1,
+              transition: 'background 0.2s'
             }}
+            onMouseEnter={e => !loading && (e.target.style.background = '#1d4ed8')}
+            onMouseLeave={e => !loading && (e.target.style.background = '#2563eb')}
           >
             {loading ? 'Đang xử lý...' : 'Đổi mật khẩu'}
           </button>

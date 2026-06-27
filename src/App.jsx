@@ -7,7 +7,6 @@ import Leads          from './pages/Leads'
 import Students       from './pages/Students'
 import Classes        from './pages/Classes'
 import Teachers       from './pages/Teachers'
-import Payments       from './pages/Payments'
 import Attendance     from './pages/Attendance'
 import Revenue        from './pages/Revenue'
 import UserManagement from './pages/UserManagement'
@@ -20,7 +19,6 @@ const NAV_ITEMS = [
   { to: '/classes',    label: 'Lớp học',    icon: '🏫', adminOnly: false },
   { to: '/teachers',   label: 'Giáo viên',  icon: '👩‍🏫', adminOnly: false },
   { to: '/attendance', label: 'Điểm danh',  icon: '✅', adminOnly: false },
-  { to: '/payments',   label: 'Học phí',    icon: '💰', adminOnly: true  },
   { to: '/revenue',    label: 'Doanh thu',  icon: '📈', adminOnly: true  },
   { to: '/users',      label: 'Phân quyền', icon: '👥', adminOnly: true  },
 ]
@@ -32,7 +30,6 @@ const BOTTOM_NAV = [
   { to: '/attendance', label: 'Điểm danh',  icon: '✅', adminOnly: false },
   { to: '/classes',    label: 'Lớp học',    icon: '🏫', adminOnly: false },
   { to: '/teachers',   label: 'Giáo viên',  icon: '👩‍🏫', adminOnly: false },
-  { to: '/payments',   label: 'Học phí',    icon: '💰', adminOnly: true  },
   { to: '/revenue',    label: 'Doanh thu',  icon: '📈', adminOnly: true  },
   { to: '/users',      label: 'Phân quyền', icon: '👥', adminOnly: true  },
 ]
@@ -417,7 +414,6 @@ function Layout() {
             <Route path="/classes"    element={<Classes />} />
             <Route path="/teachers"   element={<Teachers />} />
             <Route path="/attendance" element={<Attendance />} />
-            <Route path="/payments"   element={isAdmin ? <Payments /> : <Navigate to="/" replace />} />
             <Route path="/revenue"    element={isAdmin ? <Revenue /> : <Navigate to="/" replace />} />
             <Route path="/users"      element={isAdmin ? <UserManagement /> : <Navigate to="/" replace />} />
             <Route path="/reset-password" element={<ResetPassword />} />

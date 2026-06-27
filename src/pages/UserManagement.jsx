@@ -49,6 +49,22 @@ export default function UserManagement() {
     setForm({ ...form, password: newPassword })
   }
 
+  function showSuccessMessage() {
+    alert(
+      `✅ ĐÃ TẠO TÀI KHOẢN THÀNH CÔNG!\n\n` +
+      `📧 Email: ${form.email}\n` +
+      `🔑 Mật khẩu: ${form.password}\n` +
+      `👤 Họ tên: ${form.full_name}\n` +
+      `🔐 Quyền: ${form.role === 'admin' ? 'Admin' : 'Nhân viên'}\n\n` +
+      `📝 Vui lòng sao chép thông tin và gửi cho nhân viên!\n` +
+      `⚠️ Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.`
+    )
+    
+    setShowForm(false)
+    setForm({ email: '', full_name: '', role: 'nhan_vien', password: '' })
+    fetchUsers()
+  }
+
   async function createUser() {
     if (!form.email || !form.full_name) {
       alert('Vui lòng điền đầy đủ thông tin!')
@@ -62,20 +78,20 @@ export default function UserManagement() {
     
     setSaving(true)
     try {
-      // Kiểm tra email đã tồn tại chưa
-      const { data: existingUser } = await supabase
+      // Kiểm tra email đã tồn tại trong profiles chưa
+      const { data: existingProfile } = await supabase
         .from('profiles')
         .select('id, email')
         .eq('email', form.email)
         .maybeSingle()
 
-      if (existingUser) {
+      if (existingProfile) {
         alert(`❌ Email ${form.email} đã tồn tại trong hệ thống!`)
         setSaving(false)
         return
       }
 
-      // Tạo user mới trong auth
+      // Tạo user bằng signUp
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -83,7 +99,8 @@ export default function UserManagement() {
           data: { 
             full_name: form.full_name,
             role: form.role
-          }
+          },
+          emailRedirectTo: window.location.origin + '/login'
         }
       })
 
@@ -97,11 +114,14 @@ export default function UserManagement() {
         return
       }
 
-      if (!authData.user) {
+      if (!authData || !authData.user) {
         alert('❌ Không thể tạo tài khoản. Vui lòng thử lại!')
         setSaving(false)
         return
       }
+
+      // Đợi 2 giây để Supabase hoàn tất việc tạo user
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
       // Tạo profile
       const { error: profileError } = await supabase
@@ -110,7 +130,8 @@ export default function UserManagement() {
           id: authData.user.id,
           email: form.email,
           full_name: form.full_name,
-          role: form.role
+          role: form.role,
+          must_change_password: true
         })
 
       if (profileError) {
@@ -120,42 +141,12 @@ export default function UserManagement() {
         return
       }
 
-      // Gửi email thông báo
-      await sendWelcomeEmail(form.email, form.full_name, form.password)
-
-      alert(`✅ Đã tạo tài khoản thành công!\n\n📧 Email: ${form.email}\n🔑 Mật khẩu: ${form.password}\n\n⚠️ Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.`)
-      
-      // Reset form và refresh danh sách
-      setShowForm(false)
-      setForm({ email: '', full_name: '', role: 'nhan_vien', password: '' })
-      await fetchUsers() // 👈 Refresh danh sách ngay lập tức
+      showSuccessMessage()
 
     } catch (error) {
       alert(`❌ Lỗi: ${error.message}`)
     }
     setSaving(false)
-  }
-
-  async function sendWelcomeEmail(email, fullName, password) {
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          data: {
-            full_name: fullName,
-            temp_password: password
-          },
-          emailRedirectTo: window.location.origin + '/reset-password'
-        }
-      })
-
-      if (error) {
-        console.error('Lỗi gửi email:', error)
-        // Vẫn tiếp tục vì user đã được tạo
-      }
-    } catch (error) {
-      console.error('Lỗi gửi email:', error)
-    }
   }
 
   async function updateRole(userId, newRole) {
@@ -174,23 +165,9 @@ export default function UserManagement() {
     if (!confirm(`Xoá tài khoản "${email}"?`)) return
     
     try {
-      // Xóa profile trước
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId)
-
-      // Xóa auth user
-      const { error } = await supabase.auth.admin.deleteUser(userId)
-      if (error) {
-        console.error('Lỗi xóa auth user:', error)
-        await fetchUsers()
-        alert('✅ Đã xóa tài khoản!')
-        return
-      }
-
+      await supabase.from('profiles').delete().eq('id', userId)
       await fetchUsers()
-      alert('✅ Đã xóa tài khoản thành công!')
+      alert('✅ Đã xóa tài khoản!')
     } catch (error) {
       alert(`❌ Lỗi: ${error.message}`)
     }
@@ -206,17 +183,65 @@ export default function UserManagement() {
     
     setSaving(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(selectedUser.email, {
-        redirectTo: window.location.origin + '/reset-password'
+      // Tạo mật khẩu mới ngẫu nhiên
+      const newPassword = generateRandomPassword()
+      
+      // Gửi email thông báo mật khẩu mới
+      const { error: emailError } = await supabase.auth.signInWithOtp({
+        email: selectedUser.email,
+        options: {
+          data: {
+            full_name: selectedUser.full_name,
+            new_password: newPassword,
+            reset_type: 'manual'
+          }
+        }
       })
 
-      if (error) {
-        alert(`❌ Lỗi: ${error.message}`)
-      } else {
-        alert(`✅ Đã gửi link đặt lại mật khẩu đến ${selectedUser.email}!`)
+      if (emailError) {
+        console.error('Lỗi gửi email:', emailError)
+        // Thử cách gửi link reset
+        const { error } = await supabase.auth.resetPasswordForEmail(selectedUser.email, {
+          redirectTo: window.location.origin + '/reset-password'
+        })
+
+        if (error) {
+          alert(`❌ Lỗi: ${error.message}`)
+        } else {
+          alert(
+            `✅ ĐÃ GỬI LINK ĐẶT LẠI MẬT KHẨU!\n\n` +
+            `📧 Email: ${selectedUser.email}\n` +
+            `👤 Họ tên: ${selectedUser.full_name}\n\n` +
+            `📝 Vui lòng kiểm tra email (có thể trong Spam) và bấm vào link để đặt lại mật khẩu.\n` +
+            `⚠️ Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần sau.`
+          )
+        }
+        
         setShowResetModal(false)
         setSelectedUser(null)
+        setSaving(false)
+        return
       }
+
+      // Cập nhật must_change_password = true để yêu cầu đổi mật khẩu
+      await supabase
+        .from('profiles')
+        .update({ must_change_password: true })
+        .eq('id', selectedUser.id)
+
+      alert(
+        `✅ ĐÃ GỬI MẬT KHẨU MỚI!\n\n` +
+        `📧 Email: ${selectedUser.email}\n` +
+        `🔑 Mật khẩu mới: ${newPassword}\n` +
+        `👤 Họ tên: ${selectedUser.full_name}\n\n` +
+        `📝 Vui lòng sao chép thông tin và gửi cho nhân viên!\n` +
+        `⚠️ Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần sau.`
+      )
+      
+      setShowResetModal(false)
+      setSelectedUser(null)
+      await fetchUsers()
+
     } catch (error) {
       alert(`❌ Lỗi: ${error.message}`)
     }
@@ -608,7 +633,7 @@ export default function UserManagement() {
                 fontSize: '12px',
                 color: '#1d4ed8'
               }}>
-                📧 Hệ thống sẽ gửi email chứa tài khoản và mật khẩu đến nhân viên.
+                📝 Admin sẽ copy thông tin tài khoản và gửi cho nhân viên.
                 <br />
                 ⚠️ Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.
               </div>
@@ -631,7 +656,7 @@ export default function UserManagement() {
                   opacity: saving ? 0.6 : 1
                 }}
               >
-                {saving ? 'Đang tạo...' : '📧 Tạo tài khoản'}
+                {saving ? 'Đang tạo...' : '➕ Tạo tài khoản'}
               </button>
               <button
                 onClick={() => { 
@@ -679,15 +704,38 @@ export default function UserManagement() {
               fontSize: isMobile ? '16px' : '18px',
               fontWeight: 600,
               color: '#1f2937',
-              marginBottom: '12px'
+              marginBottom: '8px'
             }}>
               🔑 Đặt lại mật khẩu
             </h3>
-            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
-              Gửi link đặt lại mật khẩu đến email:
-              <br />
-              <span style={{ fontWeight: 500, color: '#1f2937' }}>{selectedUser.email}</span>
+            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>
+              Gửi thông tin đặt lại mật khẩu đến email:
             </p>
+            <p style={{ 
+              fontSize: '15px', 
+              fontWeight: 600, 
+              color: '#1f2937', 
+              marginBottom: '4px',
+              wordBreak: 'break-all'
+            }}>
+              {selectedUser.email}
+            </p>
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
+              👤 {selectedUser.full_name || 'Chưa có tên'}
+            </p>
+
+            <div style={{
+              background: '#eff6ff',
+              borderRadius: '8px',
+              padding: '12px',
+              fontSize: '13px',
+              color: '#1d4ed8',
+              marginBottom: '16px'
+            }}>
+              📧 Email sẽ chứa mật khẩu mới hoặc link để đặt lại mật khẩu.
+              <br />
+              ⚠️ Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần sau.
+            </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
@@ -706,7 +754,7 @@ export default function UserManagement() {
                   opacity: saving ? 0.6 : 1
                 }}
               >
-                {saving ? 'Đang gửi...' : '📧 Gửi link'}
+                {saving ? 'Đang gửi...' : '📧 Gửi reset'}
               </button>
               <button
                 onClick={() => { setShowResetModal(false); setSelectedUser(null) }}
