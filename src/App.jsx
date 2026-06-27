@@ -24,8 +24,6 @@ const NAV_ITEMS = [
   { to: '/users',      label: 'Phân quyền', icon: '👥', adminOnly: true  },
 ]
 
-// BOTTOM_NAV đã được cập nhật - thêm tất cả các mục bao gồm cả Phân quyền
-// Các mục adminOnly sẽ được lọc trong component BottomNav
 const BOTTOM_NAV = [
   { to: '/',           label: 'Tổng quan',  icon: '📊', adminOnly: false },
   { to: '/leads',      label: 'Leads',      icon: '🎯', adminOnly: false },
@@ -39,9 +37,9 @@ const BOTTOM_NAV = [
 ]
 
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024)
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= 1024)
+    const handler = () => setIsMobile(window.innerWidth <= 768)
     window.addEventListener('resize', handler)
     return () => window.removeEventListener('resize', handler)
   }, [])
@@ -64,22 +62,31 @@ function Sidebar({ isAdmin, user, profile, signOut }) {
       top: 0,
       flexShrink: 0,
     }}>
-      <div className="px-5 py-4 border-b border-gray-200">
-        <h1 className="text-base font-semibold text-gray-800">🎓 TNT English</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Quản lý trung tâm</p>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
+        <h1 style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>🎓 TNT English</h1>
+        <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Quản lý trung tâm</p>
       </div>
 
-      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+      <nav style={{ flex: 1, padding: '12px', overflowY: 'auto' }}>
         {NAV_ITEMS.filter(item => !item.adminOnly || isAdmin).map(item => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
-              }`
-            }
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              textDecoration: 'none',
+              color: isActive ? '#1d4ed8' : '#4b5563',
+              backgroundColor: isActive ? '#eff6ff' : 'transparent',
+              fontWeight: isActive ? 500 : 400,
+              marginBottom: '4px',
+              transition: 'all 0.2s'
+            })}
           >
             <span>{item.icon}</span>
             {item.label}
@@ -87,26 +94,47 @@ function Sidebar({ isAdmin, user, profile, signOut }) {
         ))}
       </nav>
 
-      <div className="px-4 py-3 border-t border-gray-200">
-        <div className="flex items-center gap-2 mb-2">
+      <div style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           {user?.user_metadata?.avatar_url && (
-            <img src={user.user_metadata.avatar_url}
-              className="w-7 h-7 rounded-full"
-              onError={e => e.target.style.display = 'none'} />
+            <img 
+              src={user.user_metadata.avatar_url}
+              style={{ width: '28px', height: '28px', borderRadius: '50%' }}
+              onError={e => e.target.style.display = 'none'} 
+            />
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-700 truncate">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '12px', fontWeight: 500, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {profile?.full_name || user?.email}
             </p>
-            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-              isAdmin ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-            }`}>
+            <span style={{
+              fontSize: '11px',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: 500,
+              backgroundColor: isAdmin ? '#dbeafe' : '#f3f4f6',
+              color: isAdmin ? '#1d4ed8' : '#6b7280'
+            }}>
               {isAdmin ? 'Admin' : 'Nhân viên'}
             </span>
           </div>
         </div>
-        <button onClick={signOut}
-          className="w-full text-xs text-gray-500 hover:text-red-500 text-left transition mt-1">
+        <button 
+          onClick={signOut}
+          style={{
+            width: '100%',
+            fontSize: '12px',
+            color: '#6b7280',
+            background: 'none',
+            border: 'none',
+            textAlign: 'left',
+            padding: '4px 0',
+            cursor: 'pointer',
+            transition: 'color 0.2s'
+          }}
+          onMouseEnter={e => e.target.style.color = '#ef4444'}
+          onMouseLeave={e => e.target.style.color = '#6b7280'}
+        >
           Đăng xuất
         </button>
       </div>
@@ -125,60 +153,140 @@ function MobileHeader({ user, profile, signOut }) {
     <>
       <header style={{
         position: 'fixed',
-        top: 0, left: 0, right: 0,
+        top: 0, 
+        left: 0, 
+        right: 0,
         background: 'white',
         borderBottom: '1px solid #e5e7eb',
         zIndex: 40,
-        padding: '12px 16px',
+        padding: '10px 16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        height: '56px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🎓</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '20px' }}>🎓</span>
           <div>
-            <h1 className="text-sm font-semibold text-gray-800 leading-none">TNT English</h1>
-            <p className="text-xs text-gray-400">Quản lý trung tâm</p>
+            <h1 style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', lineHeight: 1.2 }}>TNT English</h1>
+            <p style={{ fontSize: '10px', color: '#9ca3af' }}>Quản lý trung tâm</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            isAdmin ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-          }`}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            fontSize: '10px',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontWeight: 500,
+            backgroundColor: isAdmin ? '#dbeafe' : '#f3f4f6',
+            color: isAdmin ? '#1d4ed8' : '#6b7280'
+          }}>
             {isAdmin ? 'Admin' : 'NV'}
           </span>
-          <div className="relative">
+          <div style={{ position: 'relative' }}>
             {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url}
-                style={{width:32,height:32,borderRadius:'50%',cursor:'pointer',border:'1px solid #e5e7eb'}}
+              <img 
+                src={user.user_metadata.avatar_url}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  border: '2px solid #e5e7eb',
+                  objectFit: 'cover'
+                }}
                 onError={e => e.target.style.display = 'none'}
-                onClick={() => setShowMenu(!showMenu)} />
+                onClick={() => setShowMenu(!showMenu)} 
+              />
             ) : (
-              <div onClick={() => setShowMenu(!showMenu)}
-                style={{width:32,height:32,borderRadius:'50%',background:'#dbeafe',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-                <span style={{color:'#1d4ed8',fontSize:12,fontWeight:'bold'}}>
+              <div 
+                onClick={() => setShowMenu(!showMenu)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: '#dbeafe',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  border: '2px solid #e5e7eb'
+                }}
+              >
+                <span style={{ color: '#1d4ed8', fontSize: '13px', fontWeight: 'bold' }}>
                   {(profile?.full_name || user?.email || '?')[0].toUpperCase()}
                 </span>
               </div>
             )}
             {showMenu && (
-              <div style={{
-                position:'absolute', right:0, top:40,
-                background:'white', border:'1px solid #e5e7eb',
-                borderRadius:12, padding:12, width:192, zIndex:50,
-                boxShadow:'0 4px 6px rgba(0,0,0,0.1)'
-              }}>
-                <p className="text-xs text-gray-500 truncate mb-2">{profile?.full_name || user?.email}</p>
-                <button onClick={() => { signOut(); setShowMenu(false) }}
-                  className="w-full text-left text-sm text-red-500 py-1">
-                  🚪 Đăng xuất
-                </button>
-              </div>
+              <>
+                <div 
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 49,
+                    background: 'rgba(0,0,0,0.3)'
+                  }} 
+                  onClick={() => setShowMenu(false)} 
+                />
+                <div style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '40px',
+                  background: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  width: '200px',
+                  zIndex: 50,
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                  minWidth: '180px'
+                }}>
+                  <p style={{ 
+                    fontSize: '13px', 
+                    fontWeight: 500,
+                    color: '#1f2937',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    marginBottom: '8px'
+                  }}>
+                    {profile?.full_name || user?.email}
+                  </p>
+                  <p style={{ 
+                    fontSize: '11px', 
+                    color: '#6b7280',
+                    marginBottom: '12px',
+                    paddingBottom: '12px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}>
+                    {user?.email}
+                  </p>
+                  <button 
+                    onClick={() => { signOut(); setShowMenu(false) }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      color: '#ef4444',
+                      background: 'none',
+                      border: 'none',
+                      padding: '6px 0',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span>🚪</span> Đăng xuất
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
       </header>
-      {showMenu && <div style={{position:'fixed',inset:0,zIndex:30}} onClick={() => setShowMenu(false)} />}
     </>
   )
 }
@@ -190,18 +298,23 @@ function BottomNav() {
   
   if (!isMobile) return null
 
-  // Lọc các mục dựa trên quyền admin
   const visibleNavItems = BOTTOM_NAV.filter(item => !item.adminOnly || isAdmin)
 
   return (
     <nav style={{
       position: 'fixed',
-      bottom: 0, left: 0, right: 0,
+      bottom: 0, 
+      left: 0, 
+      right: 0,
       background: 'white',
       borderTop: '1px solid #e5e7eb',
       zIndex: 40,
       display: 'flex',
+      padding: '4px 0 6px',
+      boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+      height: '60px',
       overflowX: 'auto',
+      WebkitOverflowScrolling: 'touch'
     }}>
       {visibleNavItems.map(item => (
         <NavLink
@@ -209,28 +322,50 @@ function BottomNav() {
           to={item.to}
           end={item.to === '/'}
           style={{
-            flex: 1,
+            flex: '1 0 auto',
             minWidth: '56px',
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            padding: '8px 4px 10px', 
-            textDecoration: 'none'
+            maxWidth: '80px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px 2px',
+            textDecoration: 'none',
+            position: 'relative'
           }}
         >
           {({ isActive }) => (
             <>
-              <span style={{fontSize:22, lineHeight:1}}>{item.icon}</span>
               <span style={{
-                fontSize:10, 
-                marginTop:2,
-                textAlign: 'center',
+                fontSize: '22px',
+                lineHeight: 1,
+                opacity: isActive ? 1 : 0.7,
+                transition: 'opacity 0.2s'
+              }}>
+                {item.icon}
+              </span>
+              <span style={{
+                fontSize: '9px',
+                marginTop: '2px',
                 color: isActive ? '#2563eb' : '#9ca3af',
                 fontWeight: isActive ? 600 : 400,
+                whiteSpace: 'nowrap',
+                transition: 'color 0.2s'
               }}>
                 {item.label}
               </span>
-              {isActive && <div style={{width:4,height:4,borderRadius:'50%',background:'#2563eb',marginTop:2}} />}
+              {isActive && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '20px',
+                  height: '3px',
+                  background: '#2563eb',
+                  borderRadius: '0 0 3px 3px'
+                }} />
+              )}
             </>
           )}
         </NavLink>
@@ -245,17 +380,34 @@ function Layout() {
   const isAdmin = profile?.role === 'admin'
 
   return (
-    <div style={{display:'flex', height:'100vh', background:'#f9fafb'}}>
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      background: '#f9fafb',
+      overflow: 'hidden'
+    }}>
       <Sidebar isAdmin={isAdmin} user={user} profile={profile} signOut={signOut} />
 
-      <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        width: '100%'
+      }}>
         <MobileHeader user={user} profile={profile} signOut={signOut} />
 
         <main style={{
           flex: 1,
           overflow: 'auto',
           paddingTop: isMobile ? '56px' : '0',
-          paddingBottom: isMobile ? '64px' : '0',
+          paddingBottom: isMobile ? '60px' : '0',
+          paddingLeft: isMobile ? '8px' : '24px',
+          paddingRight: isMobile ? '8px' : '24px',
+          paddingTop: isMobile ? '64px' : '24px',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box'
         }}>
           <Routes>
             <Route path="/"           element={<Dashboard />} />
@@ -264,8 +416,8 @@ function Layout() {
             <Route path="/classes"    element={<Classes />} />
             <Route path="/teachers"   element={<Teachers />} />
             <Route path="/attendance" element={<Attendance />} />
-            <Route path="/payments"   element={isAdmin ? <Payments />       : <Navigate to="/" replace />} />
-            <Route path="/revenue"    element={isAdmin ? <Revenue />        : <Navigate to="/" replace />} />
+            <Route path="/payments"   element={isAdmin ? <Payments /> : <Navigate to="/" replace />} />
+            <Route path="/revenue"    element={isAdmin ? <Revenue /> : <Navigate to="/" replace />} />
             <Route path="/users"      element={isAdmin ? <UserManagement /> : <Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -279,10 +431,16 @@ function Layout() {
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#9ca3af',fontSize:14}}>
-      <div style={{textAlign:'center'}}>
-        <div style={{fontSize:40,marginBottom:8}}>🎓</div>
-        <p>Đang tải...</p>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      background: '#f9fafb'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎓</div>
+        <p style={{ color: '#9ca3af', fontSize: '14px' }}>Đang tải...</p>
       </div>
     </div>
   )
@@ -293,10 +451,16 @@ function ProtectedRoute({ children }) {
 function PublicRoute() {
   const { user, loading } = useAuth()
   if (loading) return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#9ca3af',fontSize:14}}>
-      <div style={{textAlign:'center'}}>
-        <div style={{fontSize:40,marginBottom:8}}>🎓</div>
-        <p>Đang tải...</p>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      background: '#f9fafb'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎓</div>
+        <p style={{ color: '#9ca3af', fontSize: '14px' }}>Đang tải...</p>
       </div>
     </div>
   )
