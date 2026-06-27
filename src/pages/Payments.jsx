@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const STATUS_LABELS = {
   chua_thanh_toan: { label: 'Chưa thanh toán', color: 'bg-red-100 text-red-700' },
@@ -21,6 +22,7 @@ const EMPTY_FORM = {
 }
 
 export default function Payments() {
+  const isMobile = useIsMobile()
   const [payments, setPayments] = useState([])
   const [students, setStudents] = useState([])
   const [classes, setClasses]   = useState([])
@@ -90,7 +92,6 @@ export default function Payments() {
     return matchSearch && matchStatus
   })
 
-  // Tổng doanh thu đã thu
   const totalPaid = payments
     .filter(p => p.status === 'da_thanh_toan')
     .reduce((sum, p) => sum + Number(p.final_amount || p.amount), 0)
@@ -99,197 +100,584 @@ export default function Payments() {
     .filter(p => p.status === 'chua_thanh_toan')
     .reduce((sum, p) => sum + Number(p.final_amount || p.amount), 0)
 
-  return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+  const renderMobileCard = (payment) => (
+    <div key={payment.id} style={{
+      background: 'white',
+      borderRadius: '8px',
+      padding: '14px',
+      marginBottom: '10px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      border: '1px solid #f3f4f6'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
         <div>
-          <h2 className="text-xl font-semibold text-gray-800">Quản lý Học phí</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Thu chi và công nợ</p>
+          <div style={{ fontWeight: 600, fontSize: '15px', color: '#1f2937' }}>
+            {payment.students?.full_name}
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+            📱 {payment.students?.phone || '—'}
+          </div>
+        </div>
+        <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_LABELS[payment.status]?.color}`}>
+          {STATUS_LABELS[payment.status]?.label}
+        </span>
+      </div>
+      
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '4px',
+        fontSize: '12px',
+        color: '#6b7280',
+        paddingTop: '8px',
+        borderTop: '1px solid #f3f4f6'
+      }}>
+        <div>🏫 {payment.classes?.name || '—'}</div>
+        <div>💰 {Number(payment.amount).toLocaleString('vi-VN')}đ</div>
+        <div>📉 {payment.discount > 0 ? Number(payment.discount).toLocaleString('vi-VN') + 'đ' : '—'}</div>
+        <div style={{ fontWeight: 600, color: '#1f2937' }}>
+          💵 {Number(payment.final_amount || payment.amount).toLocaleString('vi-VN')}đ
+        </div>
+        <div style={{ gridColumn: '1/3', fontSize: '11px', color: '#9ca3af' }}>
+          {METHOD_LABELS[payment.method] || payment.method}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '6px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f3f4f6' }}>
+        {payment.status === 'chua_thanh_toan' && (
+          <button 
+            onClick={() => markPaid(payment)}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              fontSize: '11px',
+              background: '#16a34a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
+          >
+            Thu tiền
+          </button>
+        )}
+        <button 
+          onClick={() => { setForm({...payment, class_id: payment.class_id || '', paid_at: ''}); setShowForm(true) }}
+          style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            background: 'none',
+            color: '#3b82f6',
+            border: '1px solid #dbeafe',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
+          Sửa
+        </button>
+        <button 
+          onClick={() => deletePayment(payment.id)}
+          style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            background: 'none',
+            color: '#ef4444',
+            border: '1px solid #fecaca',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
+          Xoá
+        </button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{
+      padding: isMobile ? '12px 10px' : '24px',
+      width: '100%',
+      maxWidth: '100%',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '12px' : '0',
+        marginBottom: '16px'
+      }}>
+        <div>
+          <h2 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
+            Quản lý Học phí
+          </h2>
+          <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
+            Thu chi và công nợ
+          </p>
         </div>
         <button
           onClick={() => { setForm(EMPTY_FORM); setShowForm(true) }}
-          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          style={{
+            padding: isMobile ? '8px 16px' : '8px 20px',
+            fontSize: isMobile ? '13px' : '14px',
+            background: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 500,
+            whiteSpace: 'nowrap'
+          }}
         >
           + Tạo hoá đơn
         </button>
       </div>
 
-      {/* Thống kê */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 mb-1">Đã thu</p>
-          <p className="text-xl font-semibold text-green-600">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr',
+        gap: isMobile ? '8px' : '16px',
+        marginBottom: '16px'
+      }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          padding: isMobile ? '12px' : '16px'
+        }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Đã thu</p>
+          <p style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 600, color: '#16a34a' }}>
             {totalPaid.toLocaleString('vi-VN')}đ
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 mb-1">Chưa thu</p>
-          <p className="text-xl font-semibold text-red-500">
+        <div style={{
+          background: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          padding: isMobile ? '12px' : '16px'
+        }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Chưa thu</p>
+          <p style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 600, color: '#ef4444' }}>
             {totalUnpaid.toLocaleString('vi-VN')}đ
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 mb-1">Tổng hoá đơn</p>
-          <p className="text-xl font-semibold text-gray-800">{payments.length}</p>
-        </div>
+        {!isMobile && (
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e5e7eb',
+            padding: '16px'
+          }}>
+            <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Tổng hoá đơn</p>
+            <p style={{ fontSize: '20px', fontWeight: 600, color: '#1f2937' }}>{payments.length}</p>
+          </div>
+        )}
+        {isMobile && (
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e5e7eb',
+            padding: '12px'
+          }}>
+            <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Tổng hoá đơn</p>
+            <p style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>{payments.length}</p>
+          </div>
+        )}
       </div>
 
-      {/* Filter */}
-      <div className="flex gap-3 mb-4">
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '8px' : '12px',
+        marginBottom: '16px'
+      }}>
         <input
           placeholder="Tìm tên, SĐT học viên..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:border-blue-400"
+          style={{
+            flex: 1,
+            padding: isMobile ? '8px 12px' : '8px 12px',
+            fontSize: isMobile ? '13px' : '14px',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            outline: 'none',
+            width: isMobile ? '100%' : 'auto'
+          }}
         />
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-        >
-          <option value="">Tất cả trạng thái</option>
+        <div style={{
+          display: 'flex',
+          gap: '6px',
+          overflowX: 'auto',
+          padding: '4px 0 8px',
+          WebkitOverflowScrolling: 'touch',
+          flexWrap: isMobile ? 'nowrap' : 'wrap'
+        }}>
           {Object.entries(STATUS_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v.label}</option>
+            <button
+              key={k}
+              onClick={() => setFilterStatus(filterStatus === k ? '' : k)}
+              style={{
+                padding: isMobile ? '6px 12px' : '8px 16px',
+                fontSize: isMobile ? '11px' : '13px',
+                borderRadius: '20px',
+                border: '1px solid',
+                borderColor: filterStatus === k ? '#2563eb' : '#e5e7eb',
+                background: filterStatus === k ? '#2563eb' : 'white',
+                color: filterStatus === k ? 'white' : '#374151',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: 500,
+                flexShrink: 0,
+                transition: 'all 0.2s'
+              }}
+            >
+              {v.label}
+            </button>
           ))}
-        </select>
+          {filterStatus && (
+            <button
+              onClick={() => setFilterStatus('')}
+              style={{
+                padding: isMobile ? '6px 12px' : '8px 16px',
+                fontSize: isMobile ? '11px' : '13px',
+                borderRadius: '20px',
+                border: '1px solid #e5e7eb',
+                background: '#f3f4f6',
+                color: '#6b7280',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: 500,
+                flexShrink: 0
+              }}
+            >
+              ✕ Tất cả
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              {['Học viên','Lớp học','Học phí','Giảm giá','Thực thu','Hình thức','Trạng thái',''].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr><td colSpan={8} className="text-center py-10 text-gray-400">Đang tải...</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-10 text-gray-400">Chưa có hoá đơn nào</td></tr>
-            ) : filtered.map(p => (
-              <tr key={p.id} className="hover:bg-gray-50 transition">
-                <td className="px-4 py-3">
-                  <p className="font-medium text-gray-800">{p.students?.full_name}</p>
-                  <p className="text-xs text-gray-400">{p.students?.phone}</p>
-                </td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{p.classes?.name || '—'}</td>
-                <td className="px-4 py-3 text-gray-700">
-                  {Number(p.amount).toLocaleString('vi-VN')}đ
-                </td>
-                <td className="px-4 py-3 text-gray-500">
-                  {p.discount > 0 ? Number(p.discount).toLocaleString('vi-VN') + 'đ' : '—'}
-                </td>
-                <td className="px-4 py-3 font-medium text-gray-800">
-                  {Number(p.final_amount || p.amount).toLocaleString('vi-VN')}đ
-                </td>
-                <td className="px-4 py-3 text-gray-500 text-xs">
-                  {METHOD_LABELS[p.method] || p.method}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_LABELS[p.status]?.color}`}>
-                    {STATUS_LABELS[p.status]?.label}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    {p.status === 'chua_thanh_toan' && (
-                      <button onClick={() => markPaid(p)}
-                        className="text-green-600 hover:text-green-800 text-xs font-medium">
-                        Thu tiền
-                      </button>
-                    )}
-                    <button onClick={() => { setForm({...p, class_id: p.class_id || '', paid_at: ''}); setShowForm(true) }}
-                      className="text-blue-500 hover:text-blue-700 text-xs">Sửa</button>
-                    <button onClick={() => deletePayment(p.id)}
-                      className="text-red-400 hover:text-red-600 text-xs">Xoá</button>
-                  </div>
-                </td>
+      {isMobile ? (
+        <div>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có hoá đơn nào</div>
+          ) : (
+            filtered.map(payment => renderMobileCard(payment))
+          )}
+        </div>
+      ) : (
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          overflow: 'auto'
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+            <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr>
+                {['Học viên','Lớp học','Học phí','Giảm giá','Thực thu','Hình thức','Trạng thái',''].map(h => (
+                  <th key={h} style={{
+                    textAlign: 'left',
+                    padding: '12px 16px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#6b7280'
+                  }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
+              {loading ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có hoá đơn nào</td></tr>
+              ) : filtered.map(p => (
+                <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '12px 16px' }}>
+                    <p style={{ fontWeight: 500, color: '#1f2937', margin: 0 }}>{p.students?.full_name}</p>
+                    <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>{p.students?.phone}</p>
+                  </td>
+                  <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: '13px' }}>{p.classes?.name || '—'}</td>
+                  <td style={{ padding: '12px 16px', color: '#1f2937' }}>
+                    {Number(p.amount).toLocaleString('vi-VN')}đ
+                  </td>
+                  <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                    {p.discount > 0 ? Number(p.discount).toLocaleString('vi-VN') + 'đ' : '—'}
+                  </td>
+                  <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1f2937' }}>
+                    {Number(p.final_amount || p.amount).toLocaleString('vi-VN')}đ
+                  </td>
+                  <td style={{ padding: '12px 16px', color: '#6b7280', fontSize: '13px' }}>
+                    {METHOD_LABELS[p.method] || p.method}
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_LABELS[p.status]?.color}`}>
+                      {STATUS_LABELS[p.status]?.label}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {p.status === 'chua_thanh_toan' && (
+                        <button 
+                          onClick={() => markPaid(p)}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '11px',
+                            background: '#16a34a',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 500
+                          }}
+                        >
+                          Thu tiền
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => { setForm({...p, class_id: p.class_id || '', paid_at: ''}); setShowForm(true) }}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          background: 'none',
+                          color: '#3b82f6',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Sửa
+                      </button>
+                      <button 
+                        onClick={() => deletePayment(p.id)}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          background: 'none',
+                          color: '#ef4444',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Xoá
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      {/* Modal Form */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-semibold text-gray-800 mb-4">
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50,
+          padding: isMobile ? '12px' : '0'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: isMobile ? '100%' : '560px',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: isMobile ? '20px 16px' : '24px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{
+              fontSize: isMobile ? '16px' : '18px',
+              fontWeight: 600,
+              color: '#1f2937',
+              marginBottom: '16px'
+            }}>
               {form.id ? 'Cập nhật hoá đơn' : 'Tạo hoá đơn mới'}
             </h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Học viên *</label>
-                <select value={form.student_id} onChange={e => setForm({...form, student_id: e.target.value})}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+            
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+              gap: isMobile ? '10px' : '12px'
+            }}>
+              <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Học viên *</label>
+                <select 
+                  value={form.student_id} 
+                  onChange={e => setForm({...form, student_id: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: isMobile ? '14px' : '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
+                >
                   <option value="">-- Chọn học viên --</option>
                   {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Lớp học</label>
-                <select value={form.class_id} onChange={e => setForm({...form, class_id: e.target.value})}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+              <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Lớp học</label>
+                <select 
+                  value={form.class_id} 
+                  onChange={e => setForm({...form, class_id: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: isMobile ? '14px' : '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
+                >
                   <option value="">-- Chọn lớp --</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Học phí (đ) *</label>
-                  <input type="number" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})}
-                    placeholder="VD: 3500000"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Giảm giá (đ)</label>
-                  <input type="number" value={form.discount} onChange={e => setForm({...form, discount: e.target.value})}
-                    placeholder="0"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400" />
-                </div>
-              </div>
-              {form.amount && (
-                <div className="bg-blue-50 rounded-lg px-3 py-2 text-sm">
-                  <span className="text-gray-500">Thực thu: </span>
-                  <span className="font-semibold text-blue-700">
-                    {(Number(form.amount) - Number(form.discount || 0)).toLocaleString('vi-VN')}đ
-                  </span>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Hình thức</label>
-                  <select value={form.method} onChange={e => setForm({...form, method: e.target.value})}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
-                    {Object.entries(METHOD_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Trạng thái</label>
-                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
-                    {Object.entries(STATUS_LABELS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                  </select>
-                </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Học phí (đ) *</label>
+                <input 
+                  type="number" 
+                  value={form.amount} 
+                  onChange={e => setForm({...form, amount: e.target.value})}
+                  placeholder="VD: 3500000"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: isMobile ? '14px' : '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Ghi chú</label>
-                <textarea value={form.note} onChange={e => setForm({...form, note: e.target.value})}
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Giảm giá (đ)</label>
+                <input 
+                  type="number" 
+                  value={form.discount} 
+                  onChange={e => setForm({...form, discount: e.target.value})}
+                  placeholder="0"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: isMobile ? '14px' : '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              {form.amount && (
+                <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
+                  <div style={{
+                    background: '#eff6ff',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '14px'
+                  }}>
+                    <span style={{ color: '#6b7280' }}>Thực thu: </span>
+                    <span style={{ fontWeight: 600, color: '#1d4ed8' }}>
+                      {(Number(form.amount) - Number(form.discount || 0)).toLocaleString('vi-VN')}đ
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Hình thức</label>
+                <select 
+                  value={form.method} 
+                  onChange={e => setForm({...form, method: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: isMobile ? '14px' : '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
+                >
+                  {Object.entries(METHOD_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Trạng thái</label>
+                <select 
+                  value={form.status} 
+                  onChange={e => setForm({...form, status: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: isMobile ? '14px' : '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
+                >
+                  {Object.entries(STATUS_LABELS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </div>
+              <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Ghi chú</label>
+                <textarea 
+                  value={form.note} 
+                  onChange={e => setForm({...form, note: e.target.value})}
                   rows={2}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400" />
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: isMobile ? '14px' : '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
+                />
               </div>
             </div>
-            <div className="flex gap-2 mt-5">
-              <button onClick={savePayment} disabled={saving}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50">
+            
+            <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+              <button 
+                onClick={savePayment} 
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '14px',
+                  background: '#2563eb',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  opacity: saving ? 0.6 : 1
+                }}
+              >
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
-              <button onClick={() => setShowForm(false)}
-                className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
+              <button 
+                onClick={() => setShowForm(false)}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '14px',
+                  background: 'none',
+                  color: '#6b7280',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
                 Huỷ
               </button>
             </div>
