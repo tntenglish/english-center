@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import Login      from './pages/Login'
-import Dashboard  from './pages/Dashboard'
-import Leads      from './pages/Leads'
-import Students   from './pages/Students'
-import Classes    from './pages/Classes'
-import Teachers   from './pages/Teachers'
-import Payments   from './pages/Payments'
-import Attendance from './pages/Attendance'
-import Revenue    from './pages/Revenue'
+import Login          from './pages/Login'
+import Dashboard      from './pages/Dashboard'
+import Leads          from './pages/Leads'
+import Students       from './pages/Students'
+import Classes        from './pages/Classes'
+import Teachers       from './pages/Teachers'
+import Payments       from './pages/Payments'
+import Attendance     from './pages/Attendance'
+import Revenue        from './pages/Revenue'
+import UserManagement from './pages/UserManagement'
 
 const NAV_ITEMS = [
   { to: '/',           label: 'Dashboard',  icon: '📊', adminOnly: false },
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { to: '/attendance', label: 'Điểm danh',  icon: '✅', adminOnly: false },
   { to: '/payments',   label: 'Học phí',    icon: '💰', adminOnly: true  },
   { to: '/revenue',    label: 'Doanh thu',  icon: '📈', adminOnly: true  },
+  { to: '/users',      label: 'Phân quyền', icon: '👥', adminOnly: true  },
 ]
 
 const BOTTOM_NAV = [
@@ -30,7 +32,6 @@ const BOTTOM_NAV = [
   { to: '/classes',    label: 'Lớp học',    icon: '🏫' },
 ]
 
-// Hook detect màn hình
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024)
   useEffect(() => {
@@ -220,8 +221,6 @@ function Layout() {
   const isMobile = useIsMobile()
   const isAdmin = profile?.role === 'admin'
 
-
-
   return (
     <div style={{display:'flex', height:'100vh', background:'#f9fafb'}}>
       <Sidebar isAdmin={isAdmin} user={user} profile={profile} signOut={signOut} />
@@ -242,8 +241,9 @@ function Layout() {
             <Route path="/classes"    element={<Classes />} />
             <Route path="/teachers"   element={<Teachers />} />
             <Route path="/attendance" element={<Attendance />} />
-            <Route path="/payments"   element={isAdmin ? <Payments />  : <Navigate to="/" replace />} />
-            <Route path="/revenue"    element={isAdmin ? <Revenue />   : <Navigate to="/" replace />} />
+            <Route path="/payments"   element={isAdmin ? <Payments />       : <Navigate to="/" replace />} />
+            <Route path="/revenue"    element={isAdmin ? <Revenue />        : <Navigate to="/" replace />} />
+            <Route path="/users"      element={isAdmin ? <UserManagement /> : <Navigate to="/" replace />} />
           </Routes>
         </main>
 
