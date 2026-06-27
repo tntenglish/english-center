@@ -24,12 +24,18 @@ const NAV_ITEMS = [
   { to: '/users',      label: 'Phân quyền', icon: '👥', adminOnly: true  },
 ]
 
+// BOTTOM_NAV đã được cập nhật - thêm tất cả các mục bao gồm cả Phân quyền
+// Các mục adminOnly sẽ được lọc trong component BottomNav
 const BOTTOM_NAV = [
-  { to: '/',           label: 'Tổng quan',  icon: '📊' },
-  { to: '/leads',      label: 'Leads',      icon: '🎯' },
-  { to: '/students',   label: 'Học viên',   icon: '👨‍🎓' },
-  { to: '/attendance', label: 'Điểm danh',  icon: '✅' },
-  { to: '/classes',    label: 'Lớp học',    icon: '🏫' },
+  { to: '/',           label: 'Tổng quan',  icon: '📊', adminOnly: false },
+  { to: '/leads',      label: 'Leads',      icon: '🎯', adminOnly: false },
+  { to: '/students',   label: 'Học viên',   icon: '👨‍🎓', adminOnly: false },
+  { to: '/attendance', label: 'Điểm danh',  icon: '✅', adminOnly: false },
+  { to: '/classes',    label: 'Lớp học',    icon: '🏫', adminOnly: false },
+  { to: '/teachers',   label: 'Giáo viên',  icon: '👩‍🏫', adminOnly: false },
+  { to: '/payments',   label: 'Học phí',    icon: '💰', adminOnly: true  },
+  { to: '/revenue',    label: 'Doanh thu',  icon: '📈', adminOnly: true  },
+  { to: '/users',      label: 'Phân quyền', icon: '👥', adminOnly: true  },
 ]
 
 function useIsMobile() {
@@ -179,7 +185,13 @@ function MobileHeader({ user, profile, signOut }) {
 
 function BottomNav() {
   const isMobile = useIsMobile()
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
+  
   if (!isMobile) return null
+
+  // Lọc các mục dựa trên quyền admin
+  const visibleNavItems = BOTTOM_NAV.filter(item => !item.adminOnly || isAdmin)
 
   return (
     <nav style={{
@@ -189,19 +201,30 @@ function BottomNav() {
       borderTop: '1px solid #e5e7eb',
       zIndex: 40,
       display: 'flex',
+      overflowX: 'auto',
     }}>
-      {BOTTOM_NAV.map(item => (
+      {visibleNavItems.map(item => (
         <NavLink
           key={item.to}
           to={item.to}
           end={item.to === '/'}
-          style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 0 10px', textDecoration:'none'}}
+          style={{
+            flex: 1,
+            minWidth: '56px',
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            padding: '8px 4px 10px', 
+            textDecoration: 'none'
+          }}
         >
           {({ isActive }) => (
             <>
               <span style={{fontSize:22, lineHeight:1}}>{item.icon}</span>
               <span style={{
-                fontSize:11, marginTop:2,
+                fontSize:10, 
+                marginTop:2,
+                textAlign: 'center',
                 color: isActive ? '#2563eb' : '#9ca3af',
                 fontWeight: isActive ? 600 : 400,
               }}>
