@@ -12,7 +12,12 @@ export default function UserManagement() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ email: '', full_name: '', role: 'nhan_vien' })
+  const [form, setForm] = useState({ 
+    email: '', 
+    full_name: '', 
+    role: 'nhan_vien',
+    password: '' 
+  })
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [showResetModal, setShowResetModal] = useState(false)
@@ -30,45 +35,50 @@ export default function UserManagement() {
     setLoading(false)
   }
 
+  function generateRandomPassword() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*'
+    let password = ''
+    for (let i = 0; i < 10; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return password
+  }
+
+  function handleRandomPassword() {
+    const newPassword = generateRandomPassword()
+    setForm({ ...form, password: newPassword })
+  }
+
   async function createUser() {
     if (!form.email || !form.full_name) {
       alert('Vui lòng điền đầy đủ thông tin!')
+      return
+    }
+
+    if (!form.password || form.password.length < 6) {
+      alert('Vui lòng nhập mật khẩu (ít nhất 6 ký tự)!')
       return
     }
     
     setSaving(true)
     try {
       // Kiểm tra email đã tồn tại chưa
-      const { data: existing } = await supabase
+      const { data: existingUser } = await supabase
         .from('profiles')
         .select('id, email')
         .eq('email', form.email)
         .maybeSingle()
 
-      if (existing) {
-        // Nếu đã tồn tại, cập nhật role và tên
-        await supabase
-          .from('profiles')
-          .update({ 
-            role: form.role, 
-            full_name: form.full_name 
-          })
-          .eq('email', form.email)
-        
-        alert(`✅ Đã cập nhật quyền cho ${form.email}!`)
-        fetchUsers()
-        setShowForm(false)
-        setForm({ email: '', full_name: '', role: 'nhan_vien' })
+      if (existingUser) {
+        alert(`❌ Email ${form.email} đã tồn tại trong hệ thống!`)
         setSaving(false)
         return
       }
 
       // Tạo user mới trong auth
-      const tempPassword = generateTempPassword()
-      
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
-        password: tempPassword,
+        password: form.password,
         options: {
           data: { 
             full_name: form.full_name,
@@ -78,7 +88,17 @@ export default function UserManagement() {
       })
 
       if (signUpError) {
-        alert(`Lỗi tạo tài khoản: ${signUpError.message}`)
+        if (signUpError.message.includes('already registered')) {
+          alert(`❌ Email ${form.email} đã được đăng ký! Vui lòng sử dụng email khác.`)
+        } else {
+          alert(`❌ Lỗi tạo tài khoản: ${signUpError.message}`)
+        }
+        setSaving(false)
+        return
+      }
+
+      if (!authData.user) {
+        alert('❌ Không thể tạo tài khoản. Vui lòng thử lại!')
         setSaving(false)
         return
       }
@@ -95,42 +115,47 @@ export default function UserManagement() {
 
       if (profileError) {
         console.error('Lỗi tạo profile:', profileError)
+        alert(`❌ Lỗi tạo profile: ${profileError.message}`)
+        setSaving(false)
+        return
       }
 
-      // Gửi email thông báo với mật khẩu tạm thời
-      await sendWelcomeEmail(form.email, form.full_name, tempPassword)
+      // Gửi email thông báo
+      await sendWelcomeEmail(form.email, form.full_name, form.password)
 
-      alert(`✅ Đã tạo tài khoản thành công!\n\n📧 Email: ${form.email}\n🔑 Mật khẩu tạm thời: ${tempPassword}\n\n⚠️ Nhân viên nên đổi mật khẩu sau khi đăng nhập lần đầu.`)
+      alert(`✅ Đã tạo tài khoản thành công!\n\n📧 Email: ${form.email}\n🔑 Mật khẩu: ${form.password}\n\n⚠️ Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.`)
       
+      // Reset form và refresh danh sách
       setShowForm(false)
-      setForm({ email: '', full_name: '', role: 'nhan_vien' })
-      fetchUsers()
+      setForm({ email: '', full_name: '', role: 'nhan_vien', password: '' })
+      await fetchUsers() // 👈 Refresh danh sách ngay lập tức
 
     } catch (error) {
-      alert(`Lỗi: ${error.message}`)
+      alert(`❌ Lỗi: ${error.message}`)
     }
     setSaving(false)
   }
 
-  function generateTempPassword() {
-    // Tạo mật khẩu tạm thời 8 ký tự
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%'
-    let password = ''
-    for (let i = 0; i < 8; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return password
-  }
+  async function sendWelcomeEmail(email, fullName, password) {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          data: {
+            full_name: fullName,
+            temp_password: password
+          },
+          emailRedirectTo: window.location.origin + '/reset-password'
+        }
+      })
 
-  async function sendWelcomeEmail(email, fullName, tempPassword) {
-    // Gửi email thông báo (sử dụng Supabase email template hoặc service khác)
-    // Đây là hàm mẫu, bạn có thể tích hợp với email service
-    console.log(`📧 Gửi email đến ${email}:`)
-    console.log(`Chào ${fullName},`)
-    console.log(`Tài khoản của bạn đã được tạo.`)
-    console.log(`Email: ${email}`)
-    console.log(`Mật khẩu tạm thời: ${tempPassword}`)
-    console.log(`Vui lòng đăng nhập và đổi mật khẩu.`)
+      if (error) {
+        console.error('Lỗi gửi email:', error)
+        // Vẫn tiếp tục vì user đã được tạo
+      }
+    } catch (error) {
+      console.error('Lỗi gửi email:', error)
+    }
   }
 
   async function updateRole(userId, newRole) {
@@ -141,31 +166,34 @@ export default function UserManagement() {
     if (error) {
       alert(`Lỗi: ${error.message}`)
     } else {
-      fetchUsers()
+      await fetchUsers()
     }
   }
 
   async function deleteUser(userId, email) {
     if (!confirm(`Xoá tài khoản "${email}"?`)) return
     
-    // Xóa profile trước
-    await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId)
+    try {
+      // Xóa profile trước
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId)
 
-    // Xóa auth user
-    const { error } = await supabase.auth.admin.deleteUser(userId)
-    if (error) {
-      console.error('Lỗi xóa auth user:', error)
-      // Vẫn refresh vì profile đã xóa
+      // Xóa auth user
+      const { error } = await supabase.auth.admin.deleteUser(userId)
+      if (error) {
+        console.error('Lỗi xóa auth user:', error)
+        await fetchUsers()
+        alert('✅ Đã xóa tài khoản!')
+        return
+      }
+
       await fetchUsers()
-      alert('✅ Đã xóa tài khoản!')
-      return
+      alert('✅ Đã xóa tài khoản thành công!')
+    } catch (error) {
+      alert(`❌ Lỗi: ${error.message}`)
     }
-
-    await fetchUsers()
-    alert('✅ Đã xóa tài khoản thành công!')
   }
 
   async function resetPassword(user) {
@@ -179,18 +207,18 @@ export default function UserManagement() {
     setSaving(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(selectedUser.email, {
-        redirectTo: 'https://english-center-v2.vercel.app/reset-password'
+        redirectTo: window.location.origin + '/reset-password'
       })
 
       if (error) {
-        alert(`Lỗi: ${error.message}`)
+        alert(`❌ Lỗi: ${error.message}`)
       } else {
         alert(`✅ Đã gửi link đặt lại mật khẩu đến ${selectedUser.email}!`)
         setShowResetModal(false)
         setSelectedUser(null)
       }
     } catch (error) {
-      alert(`Lỗi: ${error.message}`)
+      alert(`❌ Lỗi: ${error.message}`)
     }
     setSaving(false)
   }
@@ -200,7 +228,6 @@ export default function UserManagement() {
     u.email?.toLowerCase().includes(search.toLowerCase())
   )
 
-  // Render mobile card view
   const renderMobileCard = (user) => (
     <div key={user.id} style={{
       background: 'white',
@@ -295,7 +322,6 @@ export default function UserManagement() {
       maxWidth: '100%',
       boxSizing: 'border-box'
     }}>
-      {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -313,7 +339,11 @@ export default function UserManagement() {
           </p>
         </div>
         <button
-          onClick={() => { setShowForm(true); setForm({ email: '', full_name: '', role: 'nhan_vien' }) }}
+          onClick={() => { 
+            setShowForm(true)
+            const randomPass = generateRandomPassword()
+            setForm({ email: '', full_name: '', role: 'nhan_vien', password: randomPass })
+          }}
           style={{
             padding: isMobile ? '8px 16px' : '8px 20px',
             fontSize: isMobile ? '13px' : '14px',
@@ -330,7 +360,6 @@ export default function UserManagement() {
         </button>
       </div>
 
-      {/* Search */}
       <div style={{ marginBottom: '16px' }}>
         <input
           placeholder="Tìm tên, email..."
@@ -347,9 +376,7 @@ export default function UserManagement() {
         />
       </div>
 
-      {/* Content */}
       {isMobile ? (
-        // Mobile View - Cards
         <div>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</div>
@@ -360,7 +387,6 @@ export default function UserManagement() {
           )}
         </div>
       ) : (
-        // Desktop View - Table
         <div style={{
           background: 'white',
           borderRadius: '12px',
@@ -443,7 +469,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* Modal mời nhân viên */}
       {showForm && (
         <div style={{
           position: 'fixed',
@@ -458,8 +483,10 @@ export default function UserManagement() {
           <div style={{
             background: 'white',
             borderRadius: '16px',
-            width: isMobile ? '100%' : '448px',
-            maxWidth: '500px',
+            width: isMobile ? '100%' : '500px',
+            maxWidth: '550px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             padding: isMobile ? '20px 16px' : '24px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
           }}>
@@ -478,7 +505,9 @@ export default function UserManagement() {
               gap: '12px'
             }}>
               <div>
-                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Họ tên *</label>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+                  Họ tên *
+                </label>
                 <input
                   value={form.full_name}
                   onChange={e => setForm({ ...form, full_name: e.target.value })}
@@ -494,7 +523,9 @@ export default function UserManagement() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Email *</label>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+                  Email *
+                </label>
                 <input
                   type="email"
                   value={form.email}
@@ -511,7 +542,48 @@ export default function UserManagement() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Quyền</label>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+                  Mật khẩu *
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={form.password}
+                    onChange={e => setForm({ ...form, password: e.target.value })}
+                    placeholder="Nhập mật khẩu hoặc bấm Random"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      fontSize: '14px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      outline: 'none',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRandomPassword}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      background: '#8b5cf6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    🎲 Random
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+                  Quyền
+                </label>
                 <select
                   value={form.role}
                   onChange={e => setForm({ ...form, role: e.target.value })}
@@ -536,7 +608,9 @@ export default function UserManagement() {
                 fontSize: '12px',
                 color: '#1d4ed8'
               }}>
-                📧 Hệ thống sẽ tạo tài khoản và gửi mật khẩu tạm thời đến email nhân viên.
+                📧 Hệ thống sẽ gửi email chứa tài khoản và mật khẩu đến nhân viên.
+                <br />
+                ⚠️ Nhân viên sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu.
               </div>
             </div>
 
@@ -560,7 +634,10 @@ export default function UserManagement() {
                 {saving ? 'Đang tạo...' : '📧 Tạo tài khoản'}
               </button>
               <button
-                onClick={() => { setShowForm(false); setForm({ email: '', full_name: '', role: 'nhan_vien' }) }}
+                onClick={() => { 
+                  setShowForm(false)
+                  setForm({ email: '', full_name: '', role: 'nhan_vien', password: '' })
+                }}
                 style={{
                   flex: 1,
                   padding: '10px',
@@ -579,7 +656,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* Modal đặt lại mật khẩu */}
       {showResetModal && selectedUser && (
         <div style={{
           position: 'fixed',

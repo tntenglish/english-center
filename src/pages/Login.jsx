@@ -36,13 +36,24 @@ export default function Login() {
 
         if (profileError || !profile) {
           setError('❌ Tài khoản chưa được cấp quyền truy cập. Vui lòng liên hệ Admin!')
-          // Đăng xuất ngay lập tức
           await supabase.auth.signOut()
           setLoading(false)
           return
         }
 
-        navigate('/')
+        // Kiểm tra nếu là lần đăng nhập đầu tiên (chưa đổi mật khẩu)
+        const { data: userData } = await supabase.auth.getUser()
+        const createdAt = new Date(userData.user.created_at)
+        const now = new Date()
+        const hoursDiff = (now - createdAt) / (1000 * 60 * 60)
+
+        // Nếu user được tạo trong vòng 24h và chưa đổi mật khẩu
+        // Chuyển hướng đến trang đổi mật khẩu
+        if (hoursDiff < 24) {
+          navigate('/reset-password')
+        } else {
+          navigate('/')
+        }
       }
     } catch (error) {
       setError('❌ Có lỗi xảy ra: ' + error.message)
@@ -68,7 +79,6 @@ export default function Login() {
         width: '100%',
         boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
       }}>
-        {/* Logo và tiêu đề */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ fontSize: '48px', marginBottom: '8px' }}>🎓</div>
           <h1 style={{ 
@@ -88,7 +98,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Form đăng nhập */}
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '16px' }}>
             <label style={{
@@ -186,7 +195,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Footer */}
         <div style={{
           textAlign: 'center',
           marginTop: '20px',
