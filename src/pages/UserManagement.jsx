@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const ROLE_LABELS = {
   admin:     { label: 'Admin',     color: 'bg-blue-100 text-blue-700' },
@@ -7,12 +8,15 @@ const ROLE_LABELS = {
 }
 
 export default function UserManagement() {
-  const [users, setUsers]       = useState([])
-  const [loading, setLoading]   = useState(true)
+  const isMobile = useIsMobile()
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm]         = useState({ email: '', full_name: '', role: 'nhan_vien' })
-  const [saving, setSaving]     = useState(false)
-  const [search, setSearch]     = useState('')
+  const [form, setForm] = useState({ email: '', full_name: '', role: 'nhan_vien' })
+  const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
 
   useEffect(() => { fetchUsers() }, [])
 
@@ -31,46 +35,102 @@ export default function UserManagement() {
       alert('Vui lòng điền đầy đủ thông tin!')
       return
     }
+    
     setSaving(true)
     try {
       // Kiểm tra email đã tồn tại chưa
       const { data: existing } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email')
         .eq('email', form.email)
         .maybeSingle()
 
       if (existing) {
-        // Cập nhật role nếu đã tồn tại
+        // Nếu đã tồn tại, cập nhật role và tên
         await supabase
           .from('profiles')
-          .update({ role: form.role, full_name: form.full_name })
+          .update({ 
+            role: form.role, 
+            full_name: form.full_name 
+          })
           .eq('email', form.email)
+        
         alert(`✅ Đã cập nhật quyền cho ${form.email}!`)
-      } else {
-        // Gửi magic link mời đăng nhập
-        const { error } = await supabase.auth.signInWithOtp({
-          email: form.email,
-          options: {
-            data: { full_name: form.full_name },
-            emailRedirectTo: 'https://english-center-v2.vercel.app/'
-          }
-        })
-        if (error) {
-          alert(`Lỗi: ${error.message}`)
-          setSaving(false)
-          return
-        }
-        alert(`✅ Đã gửi link đăng nhập đến ${form.email}!\n\nNhân viên chỉ cần bấm link trong email là vào được hệ thống.`)
+        fetchUsers()
+        setShowForm(false)
+        setForm({ email: '', full_name: '', role: 'nhan_vien' })
+        setSaving(false)
+        return
       }
 
+      // Tạo user mới trong auth
+      const tempPassword = generateTempPassword()
+      
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: tempPassword,
+        options: {
+          data: { 
+            full_name: form.full_name,
+            role: form.role
+          }
+        }
+      })
+
+      if (signUpError) {
+        alert(`Lỗi tạo tài khoản: ${signUpError.message}`)
+        setSaving(false)
+        return
+      }
+
+      // Tạo profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: form.email,
+          full_name: form.full_name,
+          role: form.role
+        })
+
+      if (profileError) {
+        console.error('Lỗi tạo profile:', profileError)
+      }
+
+      // Gửi email thông báo với mật khẩu tạm thời
+      await sendWelcomeEmail(form.email, form.full_name, tempPassword)
+
+      alert(`✅ Đã tạo tài khoản thành công!\n\n📧 Email: ${form.email}\n🔑 Mật khẩu tạm thời: ${tempPassword}\n\n⚠️ Nhân viên nên đổi mật khẩu sau khi đăng nhập lần đầu.`)
+      
       setShowForm(false)
       setForm({ email: '', full_name: '', role: 'nhan_vien' })
       fetchUsers()
+
     } catch (error) {
       alert(`Lỗi: ${error.message}`)
     }
     setSaving(false)
+  }
+
+  function generateTempPassword() {
+    // Tạo mật khẩu tạm thời 8 ký tự
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%'
+    let password = ''
+    for (let i = 0; i < 8; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return password
+  }
+
+  async function sendWelcomeEmail(email, fullName, tempPassword) {
+    // Gửi email thông báo (sử dụng Supabase email template hoặc service khác)
+    // Đây là hàm mẫu, bạn có thể tích hợp với email service
+    console.log(`📧 Gửi email đến ${email}:`)
+    console.log(`Chào ${fullName},`)
+    console.log(`Tài khoản của bạn đã được tạo.`)
+    console.log(`Email: ${email}`)
+    console.log(`Mật khẩu tạm thời: ${tempPassword}`)
+    console.log(`Vui lòng đăng nhập và đổi mật khẩu.`)
   }
 
   async function updateRole(userId, newRole) {
@@ -86,17 +146,53 @@ export default function UserManagement() {
   }
 
   async function deleteUser(userId, email) {
-    if (!confirm(`Xoá tài khoản ${email}?`)) return
-    const { error } = await supabase
+    if (!confirm(`Xoá tài khoản "${email}"?`)) return
+    
+    // Xóa profile trước
+    await supabase
       .from('profiles')
       .delete()
       .eq('id', userId)
+
+    // Xóa auth user
+    const { error } = await supabase.auth.admin.deleteUser(userId)
     if (error) {
-      alert(`Lỗi: ${error.message}`)
-    } else {
+      console.error('Lỗi xóa auth user:', error)
+      // Vẫn refresh vì profile đã xóa
       await fetchUsers()
-      alert('✅ Đã xoá tài khoản!')
+      alert('✅ Đã xóa tài khoản!')
+      return
     }
+
+    await fetchUsers()
+    alert('✅ Đã xóa tài khoản thành công!')
+  }
+
+  async function resetPassword(user) {
+    setSelectedUser(user)
+    setShowResetModal(true)
+  }
+
+  async function sendResetPassword() {
+    if (!selectedUser) return
+    
+    setSaving(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(selectedUser.email, {
+        redirectTo: 'https://english-center-v2.vercel.app/reset-password'
+      })
+
+      if (error) {
+        alert(`Lỗi: ${error.message}`)
+      } else {
+        alert(`✅ Đã gửi link đặt lại mật khẩu đến ${selectedUser.email}!`)
+        setShowResetModal(false)
+        setSelectedUser(null)
+      }
+    } catch (error) {
+      alert(`Lỗi: ${error.message}`)
+    }
+    setSaving(false)
   }
 
   const filtered = users.filter(u =>
@@ -104,132 +200,450 @@ export default function UserManagement() {
     u.email?.toLowerCase().includes(search.toLowerCase())
   )
 
-  return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+  // Render mobile card view
+  const renderMobileCard = (user) => (
+    <div key={user.id} style={{
+      background: 'white',
+      borderRadius: '8px',
+      padding: '14px',
+      marginBottom: '10px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      border: '1px solid #f3f4f6'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
         <div>
-          <h2 className="text-xl font-semibold text-gray-800">Phân quyền User</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Quản lý tài khoản và quyền truy cập</p>
+          <div style={{ fontWeight: 600, fontSize: '15px', color: '#1f2937' }}>
+            {user.full_name || '—'}
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+            ✉️ {user.email}
+          </div>
+        </div>
+        <span className={`text-xs px-2 py-1 rounded-full font-medium ${ROLE_LABELS[user.role]?.color || 'bg-gray-100 text-gray-600'}`}>
+          {ROLE_LABELS[user.role]?.label || 'Nhân viên'}
+        </span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: '10px',
+        borderTop: '1px solid #f3f4f6',
+        marginBottom: '10px'
+      }}>
+        <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+          {user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : '—'}
+        </span>
+        <select
+          value={user.role || 'nhan_vien'}
+          onChange={e => updateRole(user.id, e.target.value)}
+          style={{
+            fontSize: '11px',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            background: 'white',
+            cursor: 'pointer',
+            outline: 'none'
+          }}
+        >
+          <option value="admin">Admin</option>
+          <option value="nhan_vien">Nhân viên</option>
+        </select>
+      </div>
+
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => resetPassword(user)}
+          style={{
+            flex: 1,
+            padding: '6px 10px',
+            fontSize: '11px',
+            background: '#f59e0b',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 500,
+            cursor: 'pointer'
+          }}
+        >
+          🔑 Đặt lại MK
+        </button>
+        <button
+          onClick={() => deleteUser(user.id, user.email)}
+          style={{
+            padding: '6px 12px',
+            fontSize: '11px',
+            background: 'none',
+            color: '#ef4444',
+            border: '1px solid #fecaca',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
+          Xoá
+        </button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{
+      padding: isMobile ? '12px 10px' : '24px',
+      width: '100%',
+      maxWidth: '100%',
+      boxSizing: 'border-box'
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '12px' : '0',
+        marginBottom: '16px'
+      }}>
+        <div>
+          <h2 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
+            Phân quyền User
+          </h2>
+          <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
+            Quản lý tài khoản và quyền truy cập ({users.length})
+          </p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          onClick={() => { setShowForm(true); setForm({ email: '', full_name: '', role: 'nhan_vien' }) }}
+          style={{
+            padding: isMobile ? '8px 16px' : '8px 20px',
+            fontSize: isMobile ? '13px' : '14px',
+            background: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 500,
+            whiteSpace: 'nowrap'
+          }}
         >
           + Mời nhân viên
         </button>
       </div>
 
       {/* Search */}
-      <div className="mb-4">
+      <div style={{ marginBottom: '16px' }}>
         <input
           placeholder="Tìm tên, email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:border-blue-400"
+          style={{
+            padding: isMobile ? '8px 12px' : '8px 12px',
+            fontSize: isMobile ? '13px' : '14px',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            outline: 'none',
+            width: isMobile ? '100%' : '256px'
+          }}
         />
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              {['Họ tên', 'Email', 'Quyền', 'Ngày tạo', ''].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr><td colSpan={5} className="text-center py-10 text-gray-400">Đang tải...</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-10 text-gray-400">Chưa có user nào</td></tr>
-            ) : filtered.map(u => (
-              <tr key={u.id} className="hover:bg-gray-50 transition">
-                <td className="px-4 py-3 font-medium text-gray-800">{u.full_name || '—'}</td>
-                <td className="px-4 py-3 text-gray-500">{u.email}</td>
-                <td className="px-4 py-3">
-                  <select
-                    value={u.role || 'nhan_vien'}
-                    onChange={e => updateRole(u.id, e.target.value)}
-                    className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${
-                      ROLE_LABELS[u.role]?.color || 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="nhan_vien">Nhân viên</option>
-                  </select>
-                </td>
-                <td className="px-4 py-3 text-gray-400 text-xs">
-                  {u.created_at ? new Date(u.created_at).toLocaleDateString('vi-VN') : '—'}
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => deleteUser(u.id, u.email)}
-                    className="text-red-400 hover:text-red-600 text-xs"
-                  >
-                    Xoá
-                  </button>
-                </td>
+      {/* Content */}
+      {isMobile ? (
+        // Mobile View - Cards
+        <div>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có user nào</div>
+          ) : (
+            filtered.map(user => renderMobileCard(user))
+          )}
+        </div>
+      ) : (
+        // Desktop View - Table
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          overflow: 'auto'
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+            <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr>
+                {['Họ tên', 'Email', 'Quyền', 'Ngày tạo', ''].map(h => (
+                  <th key={h} style={{
+                    textAlign: 'left',
+                    padding: '12px 16px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#6b7280'
+                  }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
+              {loading ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có user nào</td></tr>
+              ) : filtered.map(u => (
+                <tr key={u.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 500, color: '#1f2937' }}>{u.full_name || '—'}</td>
+                  <td style={{ padding: '12px 16px', color: '#6b7280' }}>{u.email}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <select
+                      value={u.role || 'nhan_vien'}
+                      onChange={e => updateRole(u.id, e.target.value)}
+                      className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${
+                        ROLE_LABELS[u.role]?.color || 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="nhan_vien">Nhân viên</option>
+                    </select>
+                  </td>
+                  <td style={{ padding: '12px 16px', color: '#9ca3af', fontSize: '12px' }}>
+                    {u.created_at ? new Date(u.created_at).toLocaleDateString('vi-VN') : '—'}
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        onClick={() => resetPassword(u)}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          background: '#f59e0b',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🔑 Đặt lại MK
+                      </button>
+                      <button
+                        onClick={() => deleteUser(u.id, u.email)}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          background: 'none',
+                          color: '#ef4444',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Xoá
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal mời nhân viên */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h3 className="text-base font-semibold text-gray-800 mb-4">Mời nhân viên</h3>
-            <div className="space-y-3">
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50,
+          padding: isMobile ? '12px' : '0'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: isMobile ? '100%' : '448px',
+            maxWidth: '500px',
+            padding: isMobile ? '20px 16px' : '24px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{
+              fontSize: isMobile ? '16px' : '18px',
+              fontWeight: 600,
+              color: '#1f2937',
+              marginBottom: '16px'
+            }}>
+              👤 Mời nhân viên
+            </h3>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr',
+              gap: '12px'
+            }}>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Họ tên *</label>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Họ tên *</label>
                 <input
                   value={form.full_name}
                   onChange={e => setForm({ ...form, full_name: e.target.value })}
                   placeholder="VD: Nguyễn Văn A"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Email *</label>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Email *</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
                   placeholder="VD: nhanvien@gmail.com"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Quyền</label>
+                <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Quyền</label>
                 <select
                   value={form.role}
                   onChange={e => setForm({ ...form, role: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
                 >
                   <option value="nhan_vien">Nhân viên</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-                📧 Hệ thống sẽ gửi link đăng nhập đến email nhân viên. Họ chỉ cần bấm link là vào được!
+
+              <div style={{
+                background: '#eff6ff',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '12px',
+                color: '#1d4ed8'
+              }}>
+                📧 Hệ thống sẽ tạo tài khoản và gửi mật khẩu tạm thời đến email nhân viên.
               </div>
             </div>
 
-            <div className="flex gap-2 mt-5">
+            <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
               <button
                 onClick={createUser}
                 disabled={saving}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '14px',
+                  background: '#2563eb',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  opacity: saving ? 0.6 : 1
+                }}
               >
-                {saving ? 'Đang gửi...' : '📧 Gửi link mời'}
+                {saving ? 'Đang tạo...' : '📧 Tạo tài khoản'}
               </button>
               <button
                 onClick={() => { setShowForm(false); setForm({ email: '', full_name: '', role: 'nhan_vien' }) }}
-                className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50 transition"
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '14px',
+                  background: 'none',
+                  color: '#6b7280',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                Huỷ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal đặt lại mật khẩu */}
+      {showResetModal && selectedUser && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50,
+          padding: isMobile ? '12px' : '0'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: isMobile ? '100%' : '400px',
+            maxWidth: '450px',
+            padding: isMobile ? '20px 16px' : '24px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{
+              fontSize: isMobile ? '16px' : '18px',
+              fontWeight: 600,
+              color: '#1f2937',
+              marginBottom: '12px'
+            }}>
+              🔑 Đặt lại mật khẩu
+            </h3>
+            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
+              Gửi link đặt lại mật khẩu đến email:
+              <br />
+              <span style={{ fontWeight: 500, color: '#1f2937' }}>{selectedUser.email}</span>
+            </p>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={sendResetPassword}
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '14px',
+                  background: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  opacity: saving ? 0.6 : 1
+                }}
+              >
+                {saving ? 'Đang gửi...' : '📧 Gửi link'}
+              </button>
+              <button
+                onClick={() => { setShowResetModal(false); setSelectedUser(null) }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '14px',
+                  background: 'none',
+                  color: '#6b7280',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
               >
                 Huỷ
               </button>

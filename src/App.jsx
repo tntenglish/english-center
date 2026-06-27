@@ -11,6 +11,7 @@ import Payments       from './pages/Payments'
 import Attendance     from './pages/Attendance'
 import Revenue        from './pages/Revenue'
 import UserManagement from './pages/UserManagement'
+import ResetPassword  from './pages/ResetPassword'
 
 const NAV_ITEMS = [
   { to: '/',           label: 'Dashboard',  icon: '📊', adminOnly: false },
@@ -419,6 +420,7 @@ function Layout() {
             <Route path="/payments"   element={isAdmin ? <Payments /> : <Navigate to="/" replace />} />
             <Route path="/revenue"    element={isAdmin ? <Revenue /> : <Navigate to="/" replace />} />
             <Route path="/users"      element={isAdmin ? <UserManagement /> : <Navigate to="/" replace />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Routes>
         </main>
 
@@ -474,6 +476,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<PublicRoute />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/*" element={
             <ProtectedRoute>
               <Layout />
