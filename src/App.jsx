@@ -465,7 +465,6 @@ function PublicRoute() {
   if (user) return <Navigate to="/" replace />
   return <Login />
 }
-
 export default function App() {
   return (
     <AuthProvider>
