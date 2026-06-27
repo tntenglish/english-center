@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://english-center-gray.vercel.app/'
+        redirectTo: 'https://english-center-v2.vercel.app/'
       }
     })
     if (error) console.error('Lỗi đăng nhập:', error)
