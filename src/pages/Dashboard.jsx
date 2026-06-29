@@ -171,9 +171,7 @@ export default function Dashboard() {
       if (allStudents) {
         allStudents.forEach(s => {
           const fee = Number(s.tuition_fee || 0)
-          if (s.tuition_paid && fee > 0) {
-            // Đã đóng học phí
-          } else if (!s.tuition_paid && fee > 0) {
+          if (!s.tuition_paid && fee > 0) {
             totalUnpaid += fee
             unpaidCount++
           }
@@ -295,7 +293,17 @@ export default function Dashboard() {
         padding: '40px 20px'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>⏳</div>
+          <img 
+            src="/logo.png" 
+            alt="TNT English" 
+            style={{ 
+              width: '60px', 
+              height: '60px',
+              marginBottom: '12px',
+              objectFit: 'contain',
+              animation: 'pulse 1.5s ease-in-out infinite'
+            }} 
+          />
           <p style={{ color: '#9ca3af', fontSize: '14px' }}>Đang tải dữ liệu...</p>
         </div>
       </div>
@@ -354,7 +362,12 @@ export default function Dashboard() {
             opacity: refreshing ? 0.6 : 1
           }}
         >
-          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw 
+            size={16} 
+            style={{ 
+              animation: refreshing ? 'spin 1s linear infinite' : 'none' 
+            }} 
+          />
           {refreshing ? 'Đang làm mới...' : 'Làm mới'}
         </button>
       </div>
