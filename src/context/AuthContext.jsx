@@ -1,3 +1,4 @@
+// src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -52,7 +53,8 @@ export function AuthProvider({ children }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://english-center-v2.vercel.app/'
+        // ✅ Sửa thành domain đúng của bạn
+        redirectTo: window.location.origin || 'https://english-center-ten.vercel.app/'
       }
     })
     if (error) console.error('Lỗi đăng nhập:', error)
