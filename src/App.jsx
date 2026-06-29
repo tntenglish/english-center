@@ -58,7 +58,7 @@ const BOTTOM_NAV = [
   { to: '/users', label: 'Phân quyền', icon: ShieldCheck, adminOnly: true },
 ]
 
-// ==================== HOOKS ====================
+// ==================== HOOKS =================
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
