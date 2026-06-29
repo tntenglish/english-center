@@ -588,7 +588,7 @@ function PublicRoute() {
   return <Login />
 }
 
-// ==================== APP ====================
+// ==================== APP ===============
 
 export default function App() {
   return (
