@@ -1,47 +1,146 @@
+// App.jsx
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import Login          from './pages/Login'
-import Dashboard      from './pages/Dashboard'
-import Leads          from './pages/Leads'
-import Students       from './pages/Students'
-import Classes        from './pages/Classes'
-import Teachers       from './pages/Teachers'
-import Attendance     from './pages/Attendance'
-import Revenue        from './pages/Revenue'
+
+// Import Lucide Icons
+import {
+  LayoutDashboard,
+  Target,
+  Users,
+  School,
+  UserCog,
+  CheckSquare,
+  TrendingUp,
+  ShieldCheck,
+  LogOut,
+  Home,
+  Building2,
+  User,
+  FileText,
+  Receipt,
+  Wallet
+} from 'lucide-react'
+
+// Import Pages
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+import Leads from './pages/Leads'
+import Students from './pages/Students'
+import Classes from './pages/Classes'
+import Teachers from './pages/Teachers'
+import Attendance from './pages/Attendance'
+import Revenue from './pages/Revenue'
 import UserManagement from './pages/UserManagement'
-import ResetPassword  from './pages/ResetPassword'
+import ResetPassword from './pages/ResetPassword'
+
+// ==================== CONSTANTS ====================
 
 const NAV_ITEMS = [
-  { to: '/',           label: 'Dashboard',  icon: '📊', adminOnly: false },
-  { to: '/leads',      label: 'Leads',      icon: '🎯', adminOnly: false },
-  { to: '/students',   label: 'Học viên',   icon: '👨‍🎓', adminOnly: false },
-  { to: '/classes',    label: 'Lớp học',    icon: '🏫', adminOnly: false },
-  { to: '/teachers',   label: 'Giáo viên',  icon: '👩‍🏫', adminOnly: false },
-  { to: '/attendance', label: 'Điểm danh',  icon: '✅', adminOnly: false },
-  { to: '/revenue',    label: 'Doanh thu',  icon: '📈', adminOnly: true  },
-  { to: '/users',      label: 'Phân quyền', icon: '👥', adminOnly: true  },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
+  { to: '/leads', label: 'Leads', icon: Target, adminOnly: false },
+  { to: '/students', label: 'Học viên', icon: Users, adminOnly: false },
+  { to: '/classes', label: 'Lớp học', icon: School, adminOnly: false },
+  { to: '/teachers', label: 'Giáo viên', icon: UserCog, adminOnly: false },
+  { to: '/attendance', label: 'Điểm danh', icon: CheckSquare, adminOnly: false },
+  { to: '/revenue', label: 'Doanh thu', icon: TrendingUp, adminOnly: true },
+  { to: '/users', label: 'Phân quyền', icon: ShieldCheck, adminOnly: true },
 ]
 
 const BOTTOM_NAV = [
-  { to: '/',           label: 'Tổng quan',  icon: '📊', adminOnly: false },
-  { to: '/leads',      label: 'Leads',      icon: '🎯', adminOnly: false },
-  { to: '/students',   label: 'Học viên',   icon: '👨‍🎓', adminOnly: false },
-  { to: '/attendance', label: 'Điểm danh',  icon: '✅', adminOnly: false },
-  { to: '/classes',    label: 'Lớp học',    icon: '🏫', adminOnly: false },
-  { to: '/teachers',   label: 'Giáo viên',  icon: '👩‍🏫', adminOnly: false },
-  { to: '/revenue',    label: 'Doanh thu',  icon: '📈', adminOnly: true  },
-  { to: '/users',      label: 'Phân quyền', icon: '👥', adminOnly: true  },
+  { to: '/', label: 'Tổng quan', icon: LayoutDashboard, adminOnly: false },
+  { to: '/leads', label: 'Leads', icon: Target, adminOnly: false },
+  { to: '/students', label: 'Học viên', icon: Users, adminOnly: false },
+  { to: '/attendance', label: 'Điểm danh', icon: CheckSquare, adminOnly: false },
+  { to: '/classes', label: 'Lớp học', icon: School, adminOnly: false },
+  { to: '/teachers', label: 'Giáo viên', icon: UserCog, adminOnly: false },
+  { to: '/revenue', label: 'Doanh thu', icon: TrendingUp, adminOnly: true },
+  { to: '/users', label: 'Phân quyền', icon: ShieldCheck, adminOnly: true },
 ]
 
+// ==================== HOOKS ====================
+
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 768
+    }
+    return false
+  })
+
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= 768)
-    window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
+    if (typeof window === 'undefined') return
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
+
   return isMobile
+}
+
+// ==================== COMPONENTS ====================
+
+function LoadingSpinner() {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      background: '#f9fafb'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <img 
+          src="/logo.png" 
+          alt="TNT English" 
+          style={{ 
+            width: '80px', 
+            height: '80px',
+            marginBottom: '12px',
+            objectFit: 'contain',
+            animation: 'pulse 1.5s ease-in-out infinite'
+          }} 
+        />
+        <p style={{ color: '#374151', fontSize: '18px', fontWeight: 600 }}>TNT English</p>
+        <p style={{ color: '#9ca3af', fontSize: '14px' }}>Đang tải...</p>
+        <div style={{ 
+          display: 'flex', 
+          gap: '6px', 
+          justifyContent: 'center', 
+          marginTop: '12px' 
+        }}>
+          <span style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#2563eb',
+            animation: 'bounce 1.4s ease-in-out infinite both',
+            animationDelay: '-0.32s'
+          }} />
+          <span style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#2563eb',
+            animation: 'bounce 1.4s ease-in-out infinite both',
+            animationDelay: '-0.16s'
+          }} />
+          <span style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#2563eb',
+            animation: 'bounce 1.4s ease-in-out infinite both',
+            animationDelay: '0s'
+          }} />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function Sidebar({ isAdmin, user, profile, signOut }) {
@@ -60,49 +159,76 @@ function Sidebar({ isAdmin, user, profile, signOut }) {
       top: 0,
       flexShrink: 0,
     }}>
+      {/* Logo */}
       <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
-        <h1 style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>🎓 TNT English</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img 
+            src="/logo.png" 
+            alt="TNT English" 
+            style={{ 
+              width: '28px', 
+              height: '28px',
+              objectFit: 'contain'
+            }} 
+          />
+          <h1 style={{ fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>TNT English</h1>
+        </div>
         <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>Quản lý trung tâm</p>
       </div>
 
+      {/* Navigation */}
       <nav style={{ flex: 1, padding: '12px', overflowY: 'auto' }}>
-        {NAV_ITEMS.filter(item => !item.adminOnly || isAdmin).map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              textDecoration: 'none',
-              color: isActive ? '#1d4ed8' : '#4b5563',
-              backgroundColor: isActive ? '#eff6ff' : 'transparent',
-              fontWeight: isActive ? 500 : 400,
-              marginBottom: '4px',
-              transition: 'all 0.2s'
-            })}
-          >
-            <span>{item.icon}</span>
-            {item.label}
-          </NavLink>
-        ))}
+        {NAV_ITEMS
+          .filter(item => !item.adminOnly || isAdmin)
+          .map(item => {
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                style={({ isActive }) => ({
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  color: isActive ? '#1d4ed8' : '#4b5563',
+                  backgroundColor: isActive ? '#eff6ff' : 'transparent',
+                  fontWeight: isActive ? 500 : 400,
+                  marginBottom: '4px',
+                  transition: 'all 0.2s'
+                })}
+              >
+                <Icon size={20} strokeWidth={2} />
+                {item.label}
+              </NavLink>
+            )
+          })}
       </nav>
 
+      {/* User Info & Logout */}
       <div style={{ padding: '12px 16px', borderTop: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           {user?.user_metadata?.avatar_url && (
-            <img 
+            <img
               src={user.user_metadata.avatar_url}
               style={{ width: '28px', height: '28px', borderRadius: '50%' }}
-              onError={e => e.target.style.display = 'none'} 
+              onError={e => e.target.style.display = 'none'}
+              alt="avatar"
             />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '12px', fontWeight: 500, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{
+              fontSize: '12px',
+              fontWeight: 500,
+              color: '#374151',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
               {profile?.full_name || user?.email}
             </p>
             <span style={{
@@ -117,7 +243,7 @@ function Sidebar({ isAdmin, user, profile, signOut }) {
             </span>
           </div>
         </div>
-        <button 
+        <button
           onClick={signOut}
           style={{
             width: '100%',
@@ -128,11 +254,14 @@ function Sidebar({ isAdmin, user, profile, signOut }) {
             textAlign: 'left',
             padding: '4px 0',
             cursor: 'pointer',
-            transition: 'color 0.2s'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
           onMouseEnter={e => e.target.style.color = '#ef4444'}
           onMouseLeave={e => e.target.style.color = '#6b7280'}
         >
+          <LogOut size={14} />
           Đăng xuất
         </button>
       </div>
@@ -151,8 +280,8 @@ function MobileHeader({ user, profile, signOut }) {
     <>
       <header style={{
         position: 'fixed',
-        top: 0, 
-        left: 0, 
+        top: 0,
+        left: 0,
         right: 0,
         background: 'white',
         borderBottom: '1px solid #e5e7eb',
@@ -164,13 +293,26 @@ function MobileHeader({ user, profile, signOut }) {
         height: '56px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}>
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '20px' }}>🎓</span>
+          <img 
+            src="/logo.png" 
+            alt="TNT English" 
+            style={{ 
+              width: '24px', 
+              height: '24px',
+              objectFit: 'contain'
+            }} 
+          />
           <div>
-            <h1 style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', lineHeight: 1.2 }}>TNT English</h1>
+            <h1 style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', lineHeight: 1.2 }}>
+              TNT English
+            </h1>
             <p style={{ fontSize: '10px', color: '#9ca3af' }}>Quản lý trung tâm</p>
           </div>
         </div>
+
+        {/* User Menu */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{
             fontSize: '10px',
@@ -182,9 +324,10 @@ function MobileHeader({ user, profile, signOut }) {
           }}>
             {isAdmin ? 'Admin' : 'NV'}
           </span>
+          
           <div style={{ position: 'relative' }}>
             {user?.user_metadata?.avatar_url ? (
-              <img 
+              <img
                 src={user.user_metadata.avatar_url}
                 style={{
                   width: '32px',
@@ -195,10 +338,11 @@ function MobileHeader({ user, profile, signOut }) {
                   objectFit: 'cover'
                 }}
                 onError={e => e.target.style.display = 'none'}
-                onClick={() => setShowMenu(!showMenu)} 
+                onClick={() => setShowMenu(!showMenu)}
+                alt="avatar"
               />
             ) : (
-              <div 
+              <div
                 onClick={() => setShowMenu(!showMenu)}
                 style={{
                   width: '32px',
@@ -217,16 +361,18 @@ function MobileHeader({ user, profile, signOut }) {
                 </span>
               </div>
             )}
+
+            {/* Dropdown Menu */}
             {showMenu && (
               <>
-                <div 
+                <div
                   style={{
                     position: 'fixed',
                     inset: 0,
                     zIndex: 49,
                     background: 'rgba(0,0,0,0.3)'
-                  }} 
-                  onClick={() => setShowMenu(false)} 
+                  }}
+                  onClick={() => setShowMenu(false)}
                 />
                 <div style={{
                   position: 'absolute',
@@ -239,10 +385,9 @@ function MobileHeader({ user, profile, signOut }) {
                   width: '200px',
                   zIndex: 50,
                   boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-                  minWidth: '180px'
                 }}>
-                  <p style={{ 
-                    fontSize: '13px', 
+                  <p style={{
+                    fontSize: '13px',
                     fontWeight: 500,
                     color: '#1f2937',
                     overflow: 'hidden',
@@ -252,8 +397,8 @@ function MobileHeader({ user, profile, signOut }) {
                   }}>
                     {profile?.full_name || user?.email}
                   </p>
-                  <p style={{ 
-                    fontSize: '11px', 
+                  <p style={{
+                    fontSize: '11px',
                     color: '#6b7280',
                     marginBottom: '12px',
                     paddingBottom: '12px',
@@ -261,7 +406,7 @@ function MobileHeader({ user, profile, signOut }) {
                   }}>
                     {user?.email}
                   </p>
-                  <button 
+                  <button
                     onClick={() => { signOut(); setShowMenu(false) }}
                     style={{
                       width: '100%',
@@ -277,7 +422,8 @@ function MobileHeader({ user, profile, signOut }) {
                       gap: '8px'
                     }}
                   >
-                    <span>🚪</span> Đăng xuất
+                    <LogOut size={16} />
+                    Đăng xuất
                   </button>
                 </div>
               </>
@@ -293,7 +439,7 @@ function BottomNav() {
   const isMobile = useIsMobile()
   const { profile } = useAuth()
   const isAdmin = profile?.role === 'admin'
-  
+
   if (!isMobile) return null
 
   const visibleNavItems = BOTTOM_NAV.filter(item => !item.adminOnly || isAdmin)
@@ -301,8 +447,8 @@ function BottomNav() {
   return (
     <nav style={{
       position: 'fixed',
-      bottom: 0, 
-      left: 0, 
+      bottom: 0,
+      left: 0,
       right: 0,
       background: 'white',
       borderTop: '1px solid #e5e7eb',
@@ -314,60 +460,59 @@ function BottomNav() {
       overflowX: 'auto',
       WebkitOverflowScrolling: 'touch'
     }}>
-      {visibleNavItems.map(item => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.to === '/'}
-          style={{
-            flex: '1 0 auto',
-            minWidth: '56px',
-            maxWidth: '80px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px 2px',
-            textDecoration: 'none',
-            position: 'relative'
-          }}
-        >
-          {({ isActive }) => (
-            <>
-              <span style={{
-                fontSize: '22px',
-                lineHeight: 1,
-                opacity: isActive ? 1 : 0.7,
-                transition: 'opacity 0.2s'
-              }}>
-                {item.icon}
-              </span>
-              <span style={{
-                fontSize: '9px',
-                marginTop: '2px',
-                color: isActive ? '#2563eb' : '#9ca3af',
-                fontWeight: isActive ? 600 : 400,
-                whiteSpace: 'nowrap',
-                transition: 'color 0.2s'
-              }}>
-                {item.label}
-              </span>
-              {isActive && (
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '20px',
-                  height: '3px',
-                  background: '#2563eb',
-                  borderRadius: '0 0 3px 3px'
-                }} />
-              )}
-            </>
-          )}
-        </NavLink>
-      ))}
+      {visibleNavItems.map(item => {
+        const Icon = item.icon
+        return (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            style={{
+              flex: '1 0 auto',
+              minWidth: '56px',
+              maxWidth: '80px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px 2px',
+              textDecoration: 'none',
+              position: 'relative'
+            }}
+          >
+            {({ isActive }) => (
+              <>
+                <Icon
+                  size={22}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  color={isActive ? '#2563eb' : '#6b7280'}
+                />
+                <span style={{
+                  fontSize: '9px',
+                  marginTop: '2px',
+                  color: isActive ? '#2563eb' : '#9ca3af',
+                  fontWeight: isActive ? 600 : 400,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {item.label}
+                </span>
+                {isActive && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '20px',
+                    height: '3px',
+                    background: '#2563eb',
+                    borderRadius: '0 0 3px 3px'
+                  }} />
+                )}
+              </>
+            )}
+          </NavLink>
+        )
+      })}
     </nav>
   )
 }
@@ -398,24 +543,27 @@ function Layout() {
         <main style={{
           flex: 1,
           overflow: 'auto',
-          paddingTop: isMobile ? '56px' : '0',
+          paddingTop: isMobile ? '64px' : '24px',
           paddingBottom: isMobile ? '60px' : '0',
           paddingLeft: isMobile ? '8px' : '24px',
           paddingRight: isMobile ? '8px' : '24px',
-          paddingTop: isMobile ? '64px' : '24px',
           width: '100%',
           maxWidth: '100%',
           boxSizing: 'border-box'
         }}>
           <Routes>
-            <Route path="/"           element={<Dashboard />} />
-            <Route path="/leads"      element={<Leads />} />
-            <Route path="/students"   element={<Students />} />
-            <Route path="/classes"    element={<Classes />} />
-            <Route path="/teachers"   element={<Teachers />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/leads" element={<Leads />} />
+            <Route path="/students" element={<Students />} />
+            <Route path="/classes" element={<Classes />} />
+            <Route path="/teachers" element={<Teachers />} />
             <Route path="/attendance" element={<Attendance />} />
-            <Route path="/revenue"    element={isAdmin ? <Revenue /> : <Navigate to="/" replace />} />
-            <Route path="/users"      element={isAdmin ? <UserManagement /> : <Navigate to="/" replace />} />
+            <Route path="/revenue" element={
+              isAdmin ? <Revenue /> : <Navigate to="/" replace />
+            } />
+            <Route path="/users" element={
+              isAdmin ? <UserManagement /> : <Navigate to="/" replace />
+            } />
             <Route path="/reset-password" element={<ResetPassword />} />
           </Routes>
         </main>
@@ -428,43 +576,20 @@ function Layout() {
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
-  if (loading) return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      background: '#f9fafb'
-    }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎓</div>
-        <p style={{ color: '#9ca3af', fontSize: '14px' }}>Đang tải...</p>
-      </div>
-    </div>
-  )
+  if (loading) return <LoadingSpinner />
   if (!user) return <Navigate to="/login" replace />
   return children
 }
 
 function PublicRoute() {
   const { user, loading } = useAuth()
-  if (loading) return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      background: '#f9fafb'
-    }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎓</div>
-        <p style={{ color: '#9ca3af', fontSize: '14px' }}>Đang tải...</p>
-      </div>
-    </div>
-  )
+  if (loading) return <LoadingSpinner />
   if (user) return <Navigate to="/" replace />
   return <Login />
 }
+
+// ==================== APP ====================
+
 export default function App() {
   return (
     <AuthProvider>

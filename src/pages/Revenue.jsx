@@ -1,6 +1,23 @@
+// src/pages/Revenue.jsx
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import {
+  BarChart3,
+  DollarSign,
+  Users,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  UserCheck,
+  UserX,
+  Clock,
+  PieChart
+} from 'lucide-react'
 
 export default function Revenue() {
   const isMobile = useIsMobile()
@@ -173,16 +190,26 @@ export default function Revenue() {
       maxWidth: '100%',
       boxSizing: 'border-box'
     }}>
+      {/* Header */}
       <div style={{ marginBottom: '16px' }}>
-        <h2 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
-          📊 Thống kê Doanh thu
+        <h2 style={{ 
+          fontSize: isMobile ? '18px' : '24px', 
+          fontWeight: 600, 
+          color: '#1f2937', 
+          margin: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <BarChart3 size={isMobile ? 20 : 24} color="#2563eb" />
+          Thống kê Doanh thu
         </h2>
         <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
           Tổng hợp doanh thu từ học phí đã đóng
         </p>
       </div>
 
-      {/* Filter - Optimized for mobile */}
+      {/* Filter */}
       <div style={{
         background: 'white',
         borderRadius: '12px',
@@ -197,7 +224,18 @@ export default function Revenue() {
           alignItems: isMobile ? 'stretch' : 'flex-end'
         }}>
           <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Chọn tháng</label>
+            <label style={{ 
+              fontSize: '12px', 
+              color: '#6b7280', 
+              display: 'block', 
+              marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <Calendar size={14} />
+              Chọn tháng
+            </label>
             <input
               type="month"
               value={selectedMonth}
@@ -212,8 +250,19 @@ export default function Revenue() {
               }}
             />
           </div>
-          <div>
-            <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Chọn năm</label>
+          <div style={{ flex: 1 }}>
+            <label style={{ 
+              fontSize: '12px', 
+              color: '#6b7280', 
+              display: 'block', 
+              marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <Calendar size={14} />
+              Chọn năm
+            </label>
             <select
               value={selectedYear}
               onChange={e => setSelectedYear(parseInt(e.target.value))}
@@ -247,15 +296,20 @@ export default function Revenue() {
               fontWeight: 500,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              width: isMobile ? '100%' : 'auto'
+              width: isMobile ? '100%' : 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
             }}
           >
-            🔄 Cập nhật
+            <RefreshCw size={16} />
+            Cập nhật
           </button>
         </div>
       </div>
 
-      {/* Summary Cards - Optimized for mobile */}
+      {/* Summary Cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr',
@@ -268,7 +322,10 @@ export default function Revenue() {
           border: '1px solid #e5e7eb',
           padding: isMobile ? '12px' : '16px'
         }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Tổng doanh thu</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <DollarSign size={14} color="#16a34a" />
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>Tổng doanh thu</p>
+          </div>
           <p style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: '#16a34a' }}>
             {formatCurrency(summary.totalRevenue)}
           </p>
@@ -279,7 +336,10 @@ export default function Revenue() {
           border: '1px solid #e5e7eb',
           padding: isMobile ? '12px' : '16px'
         }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Tổng HV</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <Users size={14} color="#2563eb" />
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>Tổng HV</p>
+          </div>
           <p style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: '#2563eb' }}>
             {summary.totalStudents}
           </p>
@@ -290,7 +350,10 @@ export default function Revenue() {
           border: '1px solid #e5e7eb',
           padding: isMobile ? '12px' : '16px'
         }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Đã đóng</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <CheckCircle size={14} color="#16a34a" />
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>Đã đóng</p>
+          </div>
           <p style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: '#16a34a' }}>
             {summary.paidStudents}
           </p>
@@ -301,14 +364,17 @@ export default function Revenue() {
           border: '1px solid #e5e7eb',
           padding: isMobile ? '12px' : '16px'
         }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Chưa đóng</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <XCircle size={14} color="#ef4444" />
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>Chưa đóng</p>
+          </div>
           <p style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: '#ef4444' }}>
             {summary.unpaidStudents}
           </p>
         </div>
       </div>
 
-      {/* Chart - Optimized for mobile */}
+      {/* Chart */}
       <div style={{
         background: 'white',
         borderRadius: '12px',
@@ -321,14 +387,21 @@ export default function Revenue() {
           fontSize: isMobile ? '14px' : '16px',
           fontWeight: 600,
           color: '#374151',
-          marginBottom: '16px'
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          📈 Doanh thu theo tháng - Năm {selectedYear}
+          <TrendingUp size={isMobile ? 16 : 20} color="#2563eb" />
+          Doanh thu theo tháng - Năm {selectedYear}
         </h3>
         {loading ? (
           <p style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</p>
         ) : yearlyData.length === 0 || yearlyData.every(d => d.revenue === 0) ? (
-          <p style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có dữ liệu doanh thu</p>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+            <Wallet size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+            <p>Chưa có dữ liệu doanh thu</p>
+          </div>
         ) : (
           <div style={{
             display: 'flex',
@@ -387,13 +460,13 @@ export default function Revenue() {
         )}
       </div>
 
-      {/* Two columns - Optimized for mobile */}
+      {/* Two columns */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
         gap: isMobile ? '12px' : '16px'
       }}>
-        {/* Students list - Optimized for mobile */}
+        {/* Students list */}
         <div style={{
           background: 'white',
           borderRadius: '12px',
@@ -408,9 +481,13 @@ export default function Revenue() {
               fontSize: isMobile ? '14px' : '15px',
               fontWeight: 600,
               color: '#374151',
-              margin: 0
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              👨‍🎓 Học viên đã đóng
+              <UserCheck size={isMobile ? 16 : 18} color="#2563eb" />
+              Học viên đã đóng
             </h3>
             <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
               {revenueData.length} học viên - Tháng {selectedMonth}
@@ -423,9 +500,11 @@ export default function Revenue() {
             {loading ? (
               <p style={{ textAlign: 'center', padding: '30px 0', color: '#9ca3af' }}>Đang tải...</p>
             ) : revenueData.length === 0 ? (
-              <p style={{ textAlign: 'center', padding: '30px 0', color: '#9ca3af' }}>Chưa có học viên</p>
+              <div style={{ textAlign: 'center', padding: '30px 0', color: '#9ca3af' }}>
+                <Wallet size={32} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+                <p>Chưa có học viên</p>
+              </div>
             ) : isMobile ? (
-              // Mobile view - Cards
               <div style={{ padding: '12px' }}>
                 {revenueData.map((student, index) => (
                   <div key={student.id} style={{
@@ -447,7 +526,6 @@ export default function Revenue() {
                 ))}
               </div>
             ) : (
-              // Desktop view - Table
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0 }}>
                   <tr>
@@ -472,7 +550,7 @@ export default function Revenue() {
           </div>
         </div>
 
-        {/* Monthly stats - Optimized for mobile */}
+        {/* Monthly stats */}
         <div style={{
           background: 'white',
           borderRadius: '12px',
@@ -487,9 +565,13 @@ export default function Revenue() {
               fontSize: isMobile ? '14px' : '15px',
               fontWeight: 600,
               color: '#374151',
-              margin: 0
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              📊 Doanh thu theo tháng
+              <PieChart size={isMobile ? 16 : 18} color="#7c3aed" />
+              Doanh thu theo tháng
             </h3>
             <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>
               Tổng hợp theo từng tháng
@@ -502,9 +584,11 @@ export default function Revenue() {
             {loading ? (
               <p style={{ textAlign: 'center', padding: '30px 0', color: '#9ca3af' }}>Đang tải...</p>
             ) : monthlyStats.length === 0 ? (
-              <p style={{ textAlign: 'center', padding: '30px 0', color: '#9ca3af' }}>Chưa có dữ liệu</p>
+              <div style={{ textAlign: 'center', padding: '30px 0', color: '#9ca3af' }}>
+                <BarChart3 size={32} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+                <p>Chưa có dữ liệu</p>
+              </div>
             ) : isMobile ? (
-              // Mobile view - Cards
               <div style={{ padding: '12px' }}>
                 {monthlyStats.map((item, index) => {
                   const total = monthlyStats.reduce((sum, i) => sum + i.revenue, 0)
@@ -541,7 +625,6 @@ export default function Revenue() {
                 })}
               </div>
             ) : (
-              // Desktop view - Table
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0 }}>
                   <tr>
