@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useIsMobile } from '../hooks/useIsMobile'
+import * as XLSX from 'xlsx'
 
 const STATUS_LABELS = {
   dang_hoc:   { label: 'Đang học',   color: 'bg-green-100 text-green-700' },
@@ -248,6 +249,36 @@ export default function Students() {
     return matchSearch && matchStatus
   })
 
+  function exportToExcel() {
+    const dataToExport = filtered.map((s, index) => ({
+      'STT':         index + 1,
+      'Họ tên':      s.full_name || '',
+      'SĐT':         s.phone || '',
+      'Email':       s.email || '',
+      'Ngày sinh':   s.date_of_birth || '',
+      'Giới tính':   s.gender === 'nam' ? 'Nam' : s.gender === 'nu' ? 'Nữ' : 'Khác',
+      'Địa chỉ':     s.address || '',
+      'Trình độ':    s.level || '',
+      'Học phí':     s.tuition_fee || 0,
+      'Đã đóng':     s.tuition_paid ? 'Đã đóng' : 'Chưa đóng',
+      'Trạng thái':  STATUS_LABELS[s.status]?.label || s.status,
+      'Ghi chú':     s.note || '',
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Học viên')
+
+    worksheet['!cols'] = [
+      { wch: 5 },  { wch: 20 }, { wch: 13 }, { wch: 22 },
+      { wch: 12 }, { wch: 10 }, { wch: 25 }, { wch: 12 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 25 },
+    ]
+
+    const today = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')
+    XLSX.writeFile(workbook, `Danh_sach_hoc_vien_${today}.xlsx`)
+  }
+
   function StudentActionButton({ student }) {
     const hasClass = studentClassStatus[student.id] || false
     return (
@@ -299,7 +330,7 @@ export default function Students() {
             {STATUS_LABELS[student.status]?.label}
           </span>
         </div>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
           <div>📚 {student.level || '—'}</div>
           <div>💰 {student.tuition_fee ? Number(student.tuition_fee).toLocaleString('vi-VN') + 'đ' : '—'}</div>
@@ -320,8 +351,8 @@ export default function Students() {
 
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <StudentActionButton student={student} />
-          <button 
-            onClick={() => editStudent(student)} 
+          <button
+            onClick={() => editStudent(student)}
             style={{
               padding: '4px 10px',
               fontSize: isMobile ? '10px' : '11px',
@@ -334,8 +365,8 @@ export default function Students() {
           >
             Sửa
           </button>
-          <button 
-            onClick={() => deleteStudent(student.id)} 
+          <button
+            onClick={() => deleteStudent(student.id)}
             style={{
               padding: '4px 10px',
               fontSize: isMobile ? '10px' : '11px',
@@ -376,22 +407,42 @@ export default function Students() {
             Tổng số: {students.length} học viên
           </p>
         </div>
-        <button
-          onClick={() => { setForm(EMPTY_FORM); setShowForm(true) }}
-          style={{
-            padding: isMobile ? '8px 16px' : '8px 20px',
-            fontSize: isMobile ? '13px' : '14px',
-            background: '#2563eb',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: 500,
-            whiteSpace: 'nowrap'
-          }}
-        >
-          + Thêm học viên
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+          <button
+            onClick={exportToExcel}
+            style={{
+              padding: isMobile ? '8px 16px' : '8px 20px',
+              fontSize: isMobile ? '13px' : '14px',
+              background: '#16a34a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              flex: isMobile ? 1 : 'none'
+            }}
+          >
+            📊 Xuất Excel
+          </button>
+          <button
+            onClick={() => { setForm(EMPTY_FORM); setShowForm(true) }}
+            style={{
+              padding: isMobile ? '8px 16px' : '8px 20px',
+              fontSize: isMobile ? '13px' : '14px',
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              flex: isMobile ? 1 : 'none'
+            }}
+          >
+            + Thêm học viên
+          </button>
+        </div>
       </div>
 
       <div style={{
@@ -535,7 +586,7 @@ export default function Students() {
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       <StudentActionButton student={s} />
-                      <button 
+                      <button
                         onClick={() => editStudent(s)}
                         style={{
                           padding: '4px 10px',
@@ -548,7 +599,7 @@ export default function Students() {
                       >
                         Sửa
                       </button>
-                      <button 
+                      <button
                         onClick={() => deleteStudent(s.id)}
                         style={{
                           padding: '4px 10px',
@@ -619,8 +670,8 @@ export default function Students() {
               )}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                onClick={assignStudentToClass} 
+              <button
+                onClick={assignStudentToClass}
                 disabled={assigning}
                 style={{
                   flex: 1,
@@ -637,7 +688,7 @@ export default function Students() {
               >
                 {assigning ? 'Đang xếp...' : 'Xếp lớp'}
               </button>
-              <button 
+              <button
                 onClick={() => { setShowClassModal(false); setSelectedStudent(null); setSelectedClass('') }}
                 style={{
                   flex: 1,
@@ -827,7 +878,7 @@ export default function Students() {
             }}>
               {form.id ? 'Cập nhật học viên' : 'Thêm học viên mới'}
             </h3>
-            
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -835,8 +886,8 @@ export default function Students() {
             }}>
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Họ tên *</label>
-                <input 
-                  value={form.full_name} 
+                <input
+                  value={form.full_name}
                   onChange={e => setForm({...form, full_name: e.target.value})}
                   style={{
                     width: '100%',
@@ -850,8 +901,8 @@ export default function Students() {
               </div>
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Số điện thoại *</label>
-                <input 
-                  value={form.phone} 
+                <input
+                  value={form.phone}
                   onChange={e => setForm({...form, phone: e.target.value})}
                   style={{
                     width: '100%',
@@ -865,8 +916,8 @@ export default function Students() {
               </div>
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Email</label>
-                <input 
-                  value={form.email} 
+                <input
+                  value={form.email}
                   onChange={e => setForm({...form, email: e.target.value})}
                   style={{
                     width: '100%',
@@ -880,9 +931,9 @@ export default function Students() {
               </div>
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Ngày sinh</label>
-                <input 
-                  type="date" 
-                  value={form.date_of_birth} 
+                <input
+                  type="date"
+                  value={form.date_of_birth}
                   onChange={e => setForm({...form, date_of_birth: e.target.value})}
                   style={{
                     width: '100%',
@@ -896,8 +947,8 @@ export default function Students() {
               </div>
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Giới tính</label>
-                <select 
-                  value={form.gender} 
+                <select
+                  value={form.gender}
                   onChange={e => setForm({...form, gender: e.target.value})}
                   style={{
                     width: '100%',
@@ -915,8 +966,8 @@ export default function Students() {
               </div>
               <div>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Trình độ đầu vào</label>
-                <select 
-                  value={form.level} 
+                <select
+                  value={form.level}
                   onChange={e => setForm({...form, level: e.target.value})}
                   style={{
                     width: '100%',
@@ -935,8 +986,8 @@ export default function Students() {
               </div>
               <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Địa chỉ</label>
-                <input 
-                  value={form.address} 
+                <input
+                  value={form.address}
                   onChange={e => setForm({...form, address: e.target.value})}
                   style={{
                     width: '100%',
@@ -951,9 +1002,9 @@ export default function Students() {
               <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Học phí</label>
                 <div style={{ position: 'relative' }}>
-                  <input 
-                    type="number" 
-                    value={form.tuition_fee} 
+                  <input
+                    type="number"
+                    value={form.tuition_fee}
                     onChange={e => setForm({...form, tuition_fee: e.target.value})}
                     placeholder="VD: 3500000"
                     style={{
@@ -971,8 +1022,8 @@ export default function Students() {
               </div>
               <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Trạng thái</label>
-                <select 
-                  value={form.status} 
+                <select
+                  value={form.status}
                   onChange={e => setForm({...form, status: e.target.value})}
                   style={{
                     width: '100%',
@@ -988,8 +1039,8 @@ export default function Students() {
               </div>
               <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Ghi chú</label>
-                <textarea 
-                  value={form.note} 
+                <textarea
+                  value={form.note}
                   onChange={e => setForm({...form, note: e.target.value})}
                   rows={2}
                   style={{
@@ -1004,10 +1055,10 @@ export default function Students() {
                 />
               </div>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
-              <button 
-                onClick={saveStudent} 
+              <button
+                onClick={saveStudent}
                 disabled={saving}
                 style={{
                   flex: 1,
@@ -1024,7 +1075,7 @@ export default function Students() {
               >
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
-              <button 
+              <button
                 onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }}
                 style={{
                   flex: 1,
