@@ -15,7 +15,8 @@ import {
   AlertCircle,
   CheckCircle,
   RefreshCw,
-  Filter
+  Loader2,
+  XCircle
 } from 'lucide-react'
 
 export default function Textbooks() {
@@ -217,6 +218,157 @@ export default function Textbooks() {
 
   // ==================== RENDER ====================
 
+  // Render mobile card
+  const renderMobileCard = (textbook) => {
+    return (
+      <div key={textbook.id} style={{
+        background: 'white',
+        borderRadius: '12px',
+        padding: '16px',
+        marginBottom: '12px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        border: '1px solid #f3f4f6'
+      }}>
+        {/* Header: Tên + Số lượng */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '12px'
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontWeight: 600,
+              fontSize: '16px',
+              color: '#1f2937',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <BookOpen size={16} color="#2563eb" />
+              {textbook.name}
+            </div>
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end'
+          }}>
+            <div style={{
+              fontSize: '20px',
+              fontWeight: 700,
+              color: textbook.quantity === 0 ? '#ef4444' : textbook.quantity <= 5 ? '#f59e0b' : '#16a34a'
+            }}>
+              {textbook.quantity}
+            </div>
+            <div style={{
+              fontSize: '10px',
+              color: '#9ca3af'
+            }}>
+              quyển
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gap: '6px'
+        }}>
+          <button
+            onClick={() => openImportModal(textbook)}
+            style={{
+              padding: '6px 8px',
+              fontSize: '11px',
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              fontWeight: 500
+            }}
+          >
+            <Upload size={14} />
+            Nhập
+          </button>
+          <button
+            onClick={() => openExportModal(textbook)}
+            disabled={textbook.quantity === 0}
+            style={{
+              padding: '6px 8px',
+              fontSize: '11px',
+              background: textbook.quantity > 0 ? '#f59e0b' : '#d1d5db',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: textbook.quantity > 0 ? 'pointer' : 'not-allowed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              fontWeight: 500,
+              opacity: textbook.quantity > 0 ? 1 : 0.5
+            }}
+          >
+            <Download size={14} />
+            Xuất
+          </button>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button
+              onClick={() => openEditModal(textbook)}
+              style={{
+                flex: 1,
+                padding: '6px 8px',
+                fontSize: '11px',
+                background: 'none',
+                color: '#3b82f6',
+                border: '1px solid #dbeafe',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px'
+              }}
+            >
+              <Edit size={14} />
+            </button>
+            <button
+              onClick={() => handleDelete(textbook.id)}
+              disabled={deleting && deletingId === textbook.id}
+              style={{
+                flex: 1,
+                padding: '6px 8px',
+                fontSize: '11px',
+                background: 'none',
+                color: '#ef4444',
+                border: '1px solid #fecaca',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                opacity: deleting && deletingId === textbook.id ? 0.6 : 1
+              }}
+            >
+              {deleting && deletingId === textbook.id ? (
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Trash2 size={14} />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{
       padding: isMobile ? '12px 10px' : '24px',
@@ -244,7 +396,7 @@ export default function Textbooks() {
             gap: '8px'
           }}>
             <BookOpen size={isMobile ? 20 : 24} color="#2563eb" />
-            Quản lý Giáo trình
+            Giáo trình
           </h2>
           <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
             Tổng số: {textbooks.length} giáo trình
@@ -264,11 +416,13 @@ export default function Textbooks() {
             whiteSpace: 'nowrap',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            width: isMobile ? '100%' : 'auto',
+            justifyContent: 'center'
           }}
         >
           <Plus size={16} />
-          Thêm giáo trình
+          Thêm mới
         </button>
       </div>
 
@@ -299,6 +453,24 @@ export default function Textbooks() {
               outline: 'none'
             }}
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
         <button
           onClick={fetchTextbooks}
@@ -319,77 +491,87 @@ export default function Textbooks() {
         </button>
       </div>
 
-      {/* Table */}
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        border: '1px solid #e5e7eb',
-        overflow: 'auto'
-      }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            minWidth: isMobile ? '500px' : '100%'
-          }}>
-            <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-              <tr>
-                <th style={{
-                  textAlign: 'left',
-                  padding: '12px 16px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: '#6b7280'
-                }}>
-                  STT
-                </th>
-                <th style={{
-                  textAlign: 'left',
-                  padding: '12px 16px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: '#6b7280'
-                }}>
-                  Tên giáo trình
-                </th>
-                <th style={{
-                  textAlign: 'center',
-                  padding: '12px 16px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: '#6b7280'
-                }}>
-                  Số lượng
-                </th>
-                <th style={{
-                  textAlign: 'center',
-                  padding: '12px 16px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: '#6b7280'
-                }}>
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
-              {loading ? (
+      {/* Mobile / Desktop View */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
+          <p>Đang tải...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          background: 'white',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb'
+        }}>
+          <BookOpen size={48} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+          <p style={{ color: '#6b7280' }}>Chưa có giáo trình nào</p>
+          <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>
+            {search ? 'Không tìm thấy kết quả phù hợp' : 'Hãy thêm giáo trình mới'}
+          </p>
+        </div>
+      ) : isMobile ? (
+        /* Mobile View - Cards */
+        <div>
+          {filtered.map(textbook => renderMobileCard(textbook))}
+        </div>
+      ) : (
+        /* Desktop View - Table (bỏ cột Trạng thái) */
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          overflow: 'auto'
+        }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              minWidth: isMobile ? '500px' : '100%'
+            }}>
+              <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
-                    <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
-                    <p>Đang tải...</p>
-                  </td>
+                  <th style={{
+                    textAlign: 'left',
+                    padding: '12px 16px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#6b7280'
+                  }}>
+                    STT
+                  </th>
+                  <th style={{
+                    textAlign: 'left',
+                    padding: '12px 16px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#6b7280'
+                  }}>
+                    Tên giáo trình
+                  </th>
+                  <th style={{
+                    textAlign: 'center',
+                    padding: '12px 16px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#6b7280'
+                  }}>
+                    Số lượng
+                  </th>
+                  <th style={{
+                    textAlign: 'center',
+                    padding: '12px 16px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#6b7280'
+                  }}>
+                    Thao tác
+                  </th>
                 </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
-                    <BookOpen size={40} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
-                    <p>Chưa có giáo trình nào</p>
-                    <p style={{ fontSize: '13px', marginTop: '4px' }}>Nhấn "Thêm giáo trình" để tạo mới</p>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((t, index) => (
+              </thead>
+              <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
+                {filtered.map((t, index) => (
                   <tr key={t.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{
                       padding: '12px 16px',
@@ -408,9 +590,9 @@ export default function Textbooks() {
                       padding: '12px 16px',
                       textAlign: 'center',
                       fontWeight: 600,
-                      color: t.quantity > 0 ? '#16a34a' : '#ef4444'
+                      color: t.quantity === 0 ? '#ef4444' : t.quantity <= 5 ? '#f59e0b' : '#16a34a'
                     }}>
-                      {t.quantity} quyển
+                      {t.quantity}
                     </td>
                     <td style={{
                       padding: '12px 16px',
@@ -495,7 +677,7 @@ export default function Textbooks() {
                           }}
                         >
                           {deleting && deletingId === t.id ? (
-                            <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
                           ) : (
                             <Trash2 size={14} />
                           )}
@@ -503,12 +685,12 @@ export default function Textbooks() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ==================== MODAL ==================== */}
       {showModal && (
@@ -713,7 +895,7 @@ export default function Textbooks() {
                 }}
               >
                 {saving ? (
-                  <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                 ) : (
                   <Save size={16} />
                 )}
