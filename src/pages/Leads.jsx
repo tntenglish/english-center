@@ -25,11 +25,11 @@ import {
   UserPlus,
   MessageCircle,
   Globe,
-  Facebook,
   HelpCircle,
   Loader2,
   Users,
-  UserCog
+  UserCog,
+  Share2
 } from 'lucide-react'
 
 const STATUS_LABELS = {
@@ -66,7 +66,7 @@ const STATUS_LABELS = {
 }
 
 const SOURCE_LABELS = {
-  facebook: { label: 'Facebook', icon: Facebook },
+  facebook: { label: 'Facebook', icon: Share2 },
   zalo: { label: 'Zalo', icon: MessageCircle },
   gioi_thieu: { label: 'Giới thiệu', icon: Users },
   website: { label: 'Website', icon: Globe },
@@ -287,7 +287,6 @@ export default function Leads() {
 
   const renderMobileCard = (lead) => {
     const SourceIcon = SOURCE_LABELS[lead.source]?.icon
-    const StatusIcon = STATUS_LABELS[lead.status]?.icon
 
     return (
       <div key={lead.id} style={{
@@ -991,7 +990,8 @@ export default function Leads() {
               </div>
               <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
                 <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
-                  Tư vấn viên                </label>
+                  Tư vấn viên
+                </label>
                 <input
                   value={form.assigned_to}
                   onChange={e => setForm({ ...form, assigned_to: e.target.value })}
