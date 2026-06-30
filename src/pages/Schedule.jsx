@@ -19,7 +19,8 @@ import {
   AlertCircle,
   CheckCircle,
   RefreshCw,
-  Home
+  Home,
+  Repeat
 } from 'lucide-react'
 
 // ==================== CONSTANTS ====================
@@ -73,8 +74,11 @@ export default function Schedule() {
     time_slot: '06:00-07:30',
     class_id: '',
     teacher_id: '',
-    note: ''
+    note: '',
+    repeat_weeks: 12, // Số tuần lặp lại
+    start_date: '' // Ngày bắt đầu
   })
+  const [repeatWeeks, setRepeatWeeks] = useState(12)
 
   useEffect(() => {
     fetchData()
@@ -191,15 +195,7 @@ export default function Schedule() {
   }
 
   function getTeacherColor(teacherId) {
-    if (!teacherId) return '#6b7280'
-    // Tìm giáo viên trong danh sách
-    const index = teachers.findIndex(t => t.id === teacherId)
-    if (index >= 0) {
-      return TEACHER_COLORS[index % TEACHER_COLORS.length]
-    }
-    // Nếu không tìm thấy, tạo màu ngẫu nhiên dựa trên ID
-    const hash = teacherId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    return TEACHER_COLORS[hash % TEACHER_COLORS.length]
+    return teacherColors[teacherId] || '#6b7280'
   }
 
   // Điều hướng tuần
@@ -231,6 +227,7 @@ export default function Schedule() {
     date.setDate(date.getDate() + dayIndex)
     const dateStr = date.toISOString().split('T')[0]
     
+    // Kiểm tra xem có lớp nào đang chiếm slot này không
     const existing = getSchedulesForCell(dayIndex, roomId, timeSlot)
     if (existing.length > 0) {
       alert(`⚠️ Phòng này đã có lịch dạy vào khung giờ này!`)
@@ -245,8 +242,11 @@ export default function Schedule() {
       time_slot: timeSlot,
       class_id: '',
       teacher_id: '',
-      note: ''
+      note: '',
+      repeat_weeks: 12,
+      start_date: dateStr
     })
+    setRepeatWeeks(12)
     setShowModal(true)
   }
 
@@ -260,8 +260,11 @@ export default function Schedule() {
       time_slot: schedule.time_slot,
       class_id: schedule.class_id,
       teacher_id: schedule.teacher_id,
-      note: schedule.note || ''
+      note: schedule.note || '',
+      repeat_weeks: 1,
+      start_date: schedule.date
     })
+    setRepeatWeeks(1)
     setShowModal(true)
   }
 
@@ -277,44 +280,69 @@ export default function Schedule() {
     }
 
     try {
-      const payload = {
-        date: formData.date,
-        room_id: formData.room_id,
-        time_slot: formData.time_slot,
-        class_id: formData.class_id,
-        teacher_id: formData.teacher_id,
-        note: formData.note || '',
-        status: 'dang_hoc'
-      }
-
-      // Kiểm tra xung đột
-      const conflict = await checkConflict(payload)
-      if (conflict) {
-        if (!confirm(`⚠️ ${conflict}\n\nBạn có muốn tiếp tục không?`)) {
-          return
+      const startDate = new Date(formData.start_date)
+      const numWeeks = parseInt(formData.repeat_weeks) || 1
+      
+      // Tạo mảng các ngày trong tuần (cùng thứ)
+      const schedulesToInsert = []
+      
+      for (let week = 0; week < numWeeks; week++) {
+        const currentDate = new Date(startDate)
+        currentDate.setDate(startDate.getDate() + (week * 7))
+        const dateStr = currentDate.toISOString().split('T')[0]
+        
+        // Kiểm tra xem đã có lịch vào ngày này chưa
+        const existing = await checkConflict({
+          date: dateStr,
+          room_id: formData.room_id,
+          time_slot: formData.time_slot,
+          teacher_id: formData.teacher_id,
+          class_id: formData.class_id
+        })
+        
+        if (existing && !editingSchedule) {
+          if (!confirm(`⚠️ Ngày ${dateStr} đã có lịch trùng. Bỏ qua ngày này?`)) {
+            continue
+          }
         }
+        
+        schedulesToInsert.push({
+          date: dateStr,
+          room_id: formData.room_id,
+          time_slot: formData.time_slot,
+          class_id: formData.class_id,
+          teacher_id: formData.teacher_id,
+          note: formData.note || '',
+          status: 'dang_hoc'
+        })
       }
 
-      let result
+      if (schedulesToInsert.length === 0) {
+        alert('Không có lịch nào được thêm!')
+        return
+      }
+
+      // Nếu là sửa, xóa lịch cũ
       if (editingSchedule) {
-        result = await supabase
+        await supabase
           .from('schedules')
-          .update(payload)
+          .delete()
           .eq('id', editingSchedule.id)
-      } else {
-        result = await supabase
-          .from('schedules')
-          .insert(payload)
       }
 
-      if (result.error) {
-        alert(`Lỗi: ${result.error.message}`)
+      // Thêm tất cả lịch mới
+      const { error } = await supabase
+        .from('schedules')
+        .insert(schedulesToInsert)
+
+      if (error) {
+        alert(`Lỗi: ${error.message}`)
         return
       }
 
       setShowModal(false)
       fetchData()
-      alert(editingSchedule ? '✅ Đã cập nhật lịch dạy!' : '✅ Đã thêm lịch dạy!')
+      alert(`✅ Đã thêm ${schedulesToInsert.length} lịch dạy trong ${numWeeks} tuần!`)
       
     } catch (error) {
       alert(`Có lỗi xảy ra: ${error.message}`)
@@ -324,31 +352,27 @@ export default function Schedule() {
   async function checkConflict(payload) {
     const { data: existing } = await supabase
       .from('schedules')
-      .select(`
-        *,
-        class:class_id (name),
-        teacher:teacher_id (full_name)
-      `)
+      .select('id')
       .eq('date', payload.date)
       .eq('time_slot', payload.time_slot)
+      .eq('room_id', payload.room_id)
     
-    if (!existing || existing.length === 0) return null
-
-    const conflicts = []
-    existing.forEach(s => {
-      if (s.id === editingSchedule?.id) return
-      if (s.room_id === payload.room_id) {
-        conflicts.push(`🏫 Phòng: ${s.room_id} - Lớp: ${s.class?.name}`)
-      }
-      if (s.teacher_id === payload.teacher_id) {
-        conflicts.push(`👨‍🏫 Giáo viên: ${s.teacher?.full_name} - Lớp: ${s.class?.name}`)
-      }
-    })
-
-    if (conflicts.length > 0) {
-      return `Xung đột với:\n${conflicts.join('\n')}`
+    if (existing && existing.length > 0) {
+      return true
     }
-    return null
+    
+    const { data: teacherConflict } = await supabase
+      .from('schedules')
+      .select('id')
+      .eq('date', payload.date)
+      .eq('time_slot', payload.time_slot)
+      .eq('teacher_id', payload.teacher_id)
+    
+    if (teacherConflict && teacherConflict.length > 0) {
+      return true
+    }
+    
+    return false
   }
 
   async function handleDeleteSchedule(id) {
@@ -619,12 +643,6 @@ export default function Schedule() {
                                       position: 'relative'
                                     }}
                                     onClick={() => handleViewSchedule(schedule)}
-                                    onMouseEnter={e => {
-                                      e.target.style.opacity = '0.85'
-                                    }}
-                                    onMouseLeave={e => {
-                                      e.target.style.opacity = '1'
-                                    }}
                                   >
                                     <div style={{
                                       fontSize: isMobile ? '10px' : '11px',
@@ -650,7 +668,7 @@ export default function Schedule() {
                                       marginTop: '2px'
                                     }}>
                                       <User size={isMobile ? 10 : 12} />
-                                      {schedule.teacher?.full_name || getTeacherName(schedule.teacher_id) || '—'}
+                                      {schedule.teacher?.full_name || '—'}
                                       <span style={{ marginLeft: 'auto' }}>
                                         👥 {getClassStudents(schedule.class_id)}
                                       </span>
@@ -779,7 +797,7 @@ export default function Schedule() {
                                       marginTop: '2px'
                                     }}>
                                       <User size={isMobile ? 10 : 12} />
-                                      {slots[0].teacher?.full_name || getTeacherName(slots[0].teacher_id) || '—'}
+                                      {slots[0].teacher?.full_name || '—'}
                                       <span style={{ marginLeft: 'auto' }}>
                                         👥 {getClassStudents(slots[0].class_id)}
                                       </span>
@@ -960,7 +978,7 @@ export default function Schedule() {
               gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
               gap: '12px'
             }}>
-              {/* Ngày */}
+              {/* Ngày bắt đầu */}
               <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
                 <label style={{
                   display: 'block',
@@ -969,12 +987,22 @@ export default function Schedule() {
                   color: '#6b7280',
                   marginBottom: '4px'
                 }}>
-                  Ngày
+                  Ngày bắt đầu *
                 </label>
                 <input
                   type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  value={formData.start_date}
+                  onChange={(e) => {
+                    const date = new Date(e.target.value)
+                    const dayOfWeek = date.getDay()
+                    const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+                    setFormData({
+                      ...formData,
+                      start_date: e.target.value,
+                      day_of_week: adjustedDay,
+                      date: e.target.value
+                    })
+                  }}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -984,6 +1012,13 @@ export default function Schedule() {
                     outline: 'none'
                   }}
                 />
+                <p style={{
+                  fontSize: '11px',
+                  color: '#6b7280',
+                  marginTop: '4px'
+                }}>
+                  💡 Lịch sẽ được lặp lại vào cùng thứ này hàng tuần
+                </p>
               </div>
 
               {/* Phòng */}
@@ -1042,6 +1077,58 @@ export default function Schedule() {
                 />
               </div>
 
+              {/* Số tuần lặp lại */}
+              <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  Số tuần lặp lại
+                </label>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <input
+                    type="range"
+                    min="1"
+                    max="24"
+                    value={formData.repeat_weeks || 12}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      repeat_weeks: parseInt(e.target.value)
+                    })}
+                    style={{
+                      flex: 1,
+                      height: '6px',
+                      borderRadius: '3px',
+                      background: '#2563eb',
+                      outline: 'none'
+                    }}
+                  />
+                  <span style={{
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: '#2563eb',
+                    minWidth: '40px',
+                    textAlign: 'center'
+                  }}>
+                    {formData.repeat_weeks || 12}
+                  </span>
+                </div>
+                <p style={{
+                  fontSize: '11px',
+                  color: '#6b7280',
+                  marginTop: '4px'
+                }}>
+                  {formData.repeat_weeks || 12} tuần ≈ {(formData.repeat_weeks || 12) * 7} ngày (~{Math.round((formData.repeat_weeks || 12) / 4)} tháng)
+                </p>
+              </div>
+
               {/* Lớp học */}
               <div style={{ gridColumn: isMobile ? '1' : '1/3' }}>
                 <label style={{
@@ -1076,7 +1163,7 @@ export default function Schedule() {
                   <option value="">-- Chọn lớp --</option>
                   {classes.map(cls => (
                     <option key={cls.id} value={cls.id}>
-                      {cls.name} (👥 {cls.max_students}hs) - GV: {getTeacherName(cls.teacher_id)}
+                      {cls.name} (👥 {cls.max_students}hs)
                     </option>
                   ))}
                 </select>
