@@ -27,7 +27,6 @@ export default function Login() {
       }
 
       if (data.user) {
-        // Kiểm tra xem user có profile không
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role, must_change_password')
@@ -41,7 +40,6 @@ export default function Login() {
           return
         }
 
-        // Kiểm tra nếu cần đổi mật khẩu
         if (profile.must_change_password === true) {
           navigate('/reset-password')
         } else {
@@ -74,17 +72,26 @@ export default function Login() {
       }}>
         {/* Logo và tiêu đề */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '8px' }}>🎓</div>
-          <h1 style={{ 
-            fontSize: '24px', 
-            fontWeight: 700, 
+          <img
+            src="/logo.png"
+            alt="TNT English Logo"
+            style={{
+              height: '64px',
+              width: 'auto',
+              margin: '0 auto 12px',
+              display: 'block'
+            }}
+          />
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 700,
             color: '#1f2937',
             margin: 0
           }}>
             TNT English
           </h1>
-          <p style={{ 
-            fontSize: '14px', 
+          <p style={{
+            fontSize: '14px',
             color: '#6b7280',
             marginTop: '4px'
           }}>
