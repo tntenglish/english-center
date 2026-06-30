@@ -1,13 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('tnt_remember_email')
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRememberMe(true)
+    }
+  }, [])
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -38,6 +49,12 @@ export default function Login() {
           await supabase.auth.signOut()
           setLoading(false)
           return
+        }
+
+        if (rememberMe) {
+          localStorage.setItem('tnt_remember_email', email)
+        } else {
+          localStorage.removeItem('tnt_remember_email')
         }
 
         if (profile.must_change_password === true) {
@@ -124,6 +141,7 @@ export default function Login() {
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
                 outline: 'none',
+                boxSizing: 'border-box',
                 transition: 'border-color 0.2s'
               }}
               onFocus={e => e.target.style.borderColor = '#2563eb'}
@@ -131,7 +149,7 @@ export default function Login() {
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '12px' }}>
             <label style={{
               display: 'block',
               fontSize: '14px',
@@ -141,24 +159,76 @@ export default function Login() {
             }}>
               Mật khẩu
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="nhập mật khẩu"
-              required
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                fontSize: '14px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                outline: 'none',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={e => e.target.style.borderColor = '#2563eb'}
-              onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="nhập mật khẩu"
+                required
+                style={{
+                  width: '100%',
+                  padding: '10px 40px 10px 12px',
+                  fontSize: '14px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={e => e.target.style.borderColor = '#2563eb'}
+                onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: '#9ca3af'
+                }}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Ghi nhớ đăng nhập */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '13px',
+              color: '#4b5563',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  cursor: 'pointer',
+                  accentColor: '#2563eb'
+                }}
+              />
+              Ghi nhớ đăng nhập
+            </label>
           </div>
 
           {error && (
