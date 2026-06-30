@@ -81,11 +81,14 @@ export default function Dashboard() {
   async function fetchDashboard() {
     setLoading(true)
     try {
-      // 1. Lấy số lượng Leads mới (status = 'moi')
+      // 1. Lấy số lượng Leads tạo trong tháng này (Leads mới)
+      const now = new Date()
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
       const { count: leadsCount, error: leadsError } = await supabase
         .from('leads')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'moi')
+        .gte('created_at', firstDayOfMonth)
 
       if (leadsError) console.error('Lỗi leads:', leadsError)
 
@@ -153,7 +156,6 @@ export default function Dashboard() {
       let paidCount = 0
       let unpaidCount = 0
 
-      // Từ bảng payments
       if (payments) {
         payments.forEach(p => {
           const amount = Number(p.final_amount || p.amount || 0)
@@ -167,7 +169,6 @@ export default function Dashboard() {
         })
       }
 
-      // Từ bảng students (tuition_paid)
       if (allStudents) {
         allStudents.forEach(s => {
           const fee = Number(s.tuition_fee || 0)
@@ -178,8 +179,6 @@ export default function Dashboard() {
         })
       }
 
-      // Tính doanh thu tháng này và tháng trước
-      const now = new Date()
       const thisMonth = now.getMonth()
       const thisYear = now.getFullYear()
       const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1
@@ -193,7 +192,7 @@ export default function Dashboard() {
           if (p.status === 'da_thanh_toan' && p.created_at) {
             const date = new Date(p.created_at)
             const amount = Number(p.final_amount || p.amount || 0)
-            
+
             if (date.getMonth() === thisMonth && date.getFullYear() === thisYear) {
               revenueThisMonth += amount
             }
@@ -204,19 +203,17 @@ export default function Dashboard() {
         })
       }
 
-      // Tính tỷ lệ tăng trưởng
-      const growthRate = revenueLastMonth > 0 
+      const growthRate = revenueLastMonth > 0
         ? Math.round(((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100)
         : 0
 
-      // Lấy dữ liệu doanh thu theo tháng (12 tháng gần nhất)
       const monthlyData = []
       for (let i = 0; i < 12; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
         const month = d.getMonth()
         const year = d.getFullYear()
         let total = 0
-        
+
         if (payments) {
           payments.forEach(p => {
             if (p.status === 'da_thanh_toan' && p.created_at) {
@@ -227,7 +224,7 @@ export default function Dashboard() {
             }
           })
         }
-        
+
         monthlyData.unshift({
           month: month,
           year: year,
@@ -282,7 +279,6 @@ export default function Dashboard() {
     return STATUS_LABELS[status] || status
   }
 
-  // Render loading
   if (loading) {
     return (
       <div style={{
@@ -293,16 +289,16 @@ export default function Dashboard() {
         padding: '40px 20px'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <img 
-            src="/logo.png" 
-            alt="TNT English" 
-            style={{ 
-              width: '60px', 
+          <img
+            src="/logo.png"
+            alt="TNT English"
+            style={{
+              width: '60px',
               height: '60px',
               marginBottom: '12px',
               objectFit: 'contain',
               animation: 'pulse 1.5s ease-in-out infinite'
-            }} 
+            }}
           />
           <p style={{ color: '#9ca3af', fontSize: '14px' }}>Đang tải dữ liệu...</p>
         </div>
@@ -362,11 +358,11 @@ export default function Dashboard() {
             opacity: refreshing ? 0.6 : 1
           }}
         >
-          <RefreshCw 
-            size={16} 
-            style={{ 
-              animation: refreshing ? 'spin 1s linear infinite' : 'none' 
-            }} 
+          <RefreshCw
+            size={16}
+            style={{
+              animation: refreshing ? 'spin 1s linear infinite' : 'none'
+            }}
           />
           {refreshing ? 'Đang làm mới...' : 'Làm mới'}
         </button>
@@ -380,51 +376,51 @@ export default function Dashboard() {
         marginBottom: '16px'
       }}>
         {[
-          { 
-            label: 'Leads mới', 
-            value: stats.leads, 
-            icon: Target, 
-            color: '#2563eb', 
+          {
+            label: 'Leads mới (tháng)',
+            value: stats.leads,
+            icon: Target,
+            color: '#2563eb',
             bg: '#eff6ff',
             suffix: ''
           },
-          { 
-            label: 'Học viên', 
-            value: stats.students, 
-            icon: Users, 
-            color: '#16a34a', 
+          {
+            label: 'Học viên',
+            value: stats.students,
+            icon: Users,
+            color: '#16a34a',
             bg: '#f0fdf4',
             suffix: ''
           },
-          { 
-            label: 'Lớp học', 
-            value: stats.classes, 
-            icon: School, 
-            color: '#7c3aed', 
+          {
+            label: 'Lớp học',
+            value: stats.classes,
+            icon: School,
+            color: '#7c3aed',
             bg: '#f5f3ff',
             suffix: ''
           },
-          { 
-            label: 'Giáo viên', 
-            value: stats.teachers, 
-            icon: UserCog, 
-            color: '#d97706', 
+          {
+            label: 'Giáo viên',
+            value: stats.teachers,
+            icon: UserCog,
+            color: '#d97706',
             bg: '#fffbeb',
             suffix: ''
           },
-          { 
-            label: 'Đã thu', 
-            value: formatCurrency(stats.revenue), 
-            icon: DollarSign, 
-            color: '#16a34a', 
+          {
+            label: 'Đã thu',
+            value: formatCurrency(stats.revenue),
+            icon: DollarSign,
+            color: '#16a34a',
             bg: '#f0fdf4',
             suffix: ''
           },
-          { 
-            label: 'Chưa thu', 
-            value: formatCurrency(stats.unpaid), 
-            icon: AlertCircle, 
-            color: '#ef4444', 
+          {
+            label: 'Chưa thu',
+            value: formatCurrency(stats.unpaid),
+            icon: AlertCircle,
+            color: '#ef4444',
             bg: '#fef2f2',
             suffix: ''
           },
@@ -570,7 +566,7 @@ export default function Dashboard() {
               '#10b981', '#14b8a6', '#06b6d4', '#3b82f6'
             ]
             const color = colors[index % colors.length]
-            
+
             return (
               <div key={index} style={{
                 flex: 1,
