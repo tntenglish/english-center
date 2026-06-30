@@ -81,10 +81,10 @@ export default function Dashboard() {
   async function fetchDashboard() {
     setLoading(true)
     try {
-      // 1. Lấy số lượng Leads tạo trong tháng này (Leads mới)
       const now = new Date()
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
+      // 1. Lấy số lượng Leads tạo trong tháng này
       const { count: leadsCount, error: leadsError } = await supabase
         .from('leads')
         .select('id', { count: 'exact', head: true })
@@ -116,21 +116,14 @@ export default function Dashboard() {
 
       if (teachersError) console.error('Lỗi teachers:', teachersError)
 
-      // 5. Lấy dữ liệu thanh toán
-      const { data: payments, error: paymentsError } = await supabase
-        .from('payments')
-        .select('amount, discount, final_amount, status, created_at')
-
-      if (paymentsError) console.error('Lỗi payments:', paymentsError)
-
-      // 6. Lấy danh sách học viên để kiểm tra tuition_paid
+      // 5. Lấy danh sách học viên để tính doanh thu
       const { data: allStudents, error: allStudentsError } = await supabase
         .from('students')
-        .select('id, tuition_paid, tuition_fee')
+        .select('id, full_name, phone, tuition_fee, tuition_paid, created_at, status')
 
       if (allStudentsError) console.error('Lỗi allStudents:', allStudentsError)
 
-      // 7. Lấy 5 Leads mới nhất
+      // 6. Lấy 5 Leads mới nhất
       const { data: recentLeadsData, error: recentError } = await supabase
         .from('leads')
         .select('full_name, phone, source, status, created_at')
@@ -139,7 +132,7 @@ export default function Dashboard() {
 
       if (recentError) console.error('Lỗi recent leads:', recentError)
 
-      // 8. Lấy danh sách học phí chưa thu từ bảng students
+      // 7. Lấy danh sách học phí chưa thu
       const { data: unpaidStudents, error: unpaidError } = await supabase
         .from('students')
         .select('id, full_name, phone, tuition_fee, tuition_paid')
@@ -150,35 +143,28 @@ export default function Dashboard() {
 
       if (unpaidError) console.error('Lỗi unpaid students:', unpaidError)
 
-      // Tính toán doanh thu
+      // ==================== TÍNH TOÁN DỮ LIỆU ====================
+
+      // Tính tổng doanh thu và chưa thu từ students
       let totalRevenue = 0
       let totalUnpaid = 0
       let paidCount = 0
       let unpaidCount = 0
 
-      if (payments) {
-        payments.forEach(p => {
-          const amount = Number(p.final_amount || p.amount || 0)
-          if (p.status === 'da_thanh_toan') {
-            totalRevenue += amount
-            paidCount++
-          } else if (p.status === 'chua_thanh_toan') {
-            totalUnpaid += amount
-            unpaidCount++
-          }
-        })
-      }
-
       if (allStudents) {
         allStudents.forEach(s => {
           const fee = Number(s.tuition_fee || 0)
-          if (!s.tuition_paid && fee > 0) {
+          if (s.tuition_paid && fee > 0) {
+            totalRevenue += fee
+            paidCount++
+          } else if (!s.tuition_paid && fee > 0) {
             totalUnpaid += fee
             unpaidCount++
           }
         })
       }
 
+      // Tính doanh thu tháng này và tháng trước từ students
       const thisMonth = now.getMonth()
       const thisYear = now.getFullYear()
       const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1
@@ -187,26 +173,28 @@ export default function Dashboard() {
       let revenueThisMonth = 0
       let revenueLastMonth = 0
 
-      if (payments) {
-        payments.forEach(p => {
-          if (p.status === 'da_thanh_toan' && p.created_at) {
-            const date = new Date(p.created_at)
-            const amount = Number(p.final_amount || p.amount || 0)
-
+      if (allStudents) {
+        allStudents.forEach(s => {
+          if (s.tuition_paid && s.created_at) {
+            const date = new Date(s.created_at)
+            const fee = Number(s.tuition_fee || 0)
+            
             if (date.getMonth() === thisMonth && date.getFullYear() === thisYear) {
-              revenueThisMonth += amount
+              revenueThisMonth += fee
             }
             if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) {
-              revenueLastMonth += amount
+              revenueLastMonth += fee
             }
           }
         })
       }
 
+      // Tính tỷ lệ tăng trưởng
       const growthRate = revenueLastMonth > 0
         ? Math.round(((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100)
         : 0
 
+      // Tính doanh thu 12 tháng gần nhất
       const monthlyData = []
       for (let i = 0; i < 12; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -214,12 +202,12 @@ export default function Dashboard() {
         const year = d.getFullYear()
         let total = 0
 
-        if (payments) {
-          payments.forEach(p => {
-            if (p.status === 'da_thanh_toan' && p.created_at) {
-              const date = new Date(p.created_at)
+        if (allStudents) {
+          allStudents.forEach(s => {
+            if (s.tuition_paid && s.created_at) {
+              const date = new Date(s.created_at)
               if (date.getMonth() === month && date.getFullYear() === year) {
-                total += Number(p.final_amount || p.amount || 0)
+                total += Number(s.tuition_fee || 0)
               }
             }
           })
@@ -280,33 +268,33 @@ export default function Dashboard() {
   }
 
   if (loading) {
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100%',
-      minHeight: '60vh',
-      padding: '40px 20px'
-    }}>
-      <img
-        src="/logo.png"
-        alt="TNT English"
-        style={{
-          width: '60px',
-          height: '60px',
-          marginBottom: '12px',
-          objectFit: 'contain',
-          animation: 'pulse 1.5s ease-in-out infinite'
-        }}
-      />
-      <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>
-        Đang tải dữ liệu...
-      </p>
-    </div>
-  )
-}
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        minHeight: '60vh',
+        padding: '40px 20px'
+      }}>
+        <img
+          src="/logo.png"
+          alt="TNT English"
+          style={{
+            width: '60px',
+            height: '60px',
+            marginBottom: '12px',
+            objectFit: 'contain',
+            animation: 'pulse 1.5s ease-in-out infinite'
+          }}
+        />
+        <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>
+          Đang tải dữ liệu...
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div style={{
