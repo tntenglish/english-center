@@ -280,31 +280,33 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        padding: '40px 20px'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <img
-            src="/logo.png"
-            alt="TNT English"
-            style={{
-              width: '60px',
-              height: '60px',
-              marginBottom: '12px',
-              objectFit: 'contain',
-              animation: 'pulse 1.5s ease-in-out infinite'
-            }}
-          />
-          <p style={{ color: '#9ca3af', fontSize: '14px' }}>Đang tải dữ liệu...</p>
-        </div>
-      </div>
-    )
-  }
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      minHeight: '60vh',
+      padding: '40px 20px'
+    }}>
+      <img
+        src="/logo.png"
+        alt="TNT English"
+        style={{
+          width: '60px',
+          height: '60px',
+          marginBottom: '12px',
+          objectFit: 'contain',
+          animation: 'pulse 1.5s ease-in-out infinite'
+        }}
+      />
+      <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>
+        Đang tải dữ liệu...
+      </p>
+    </div>
+  )
+}
 
   return (
     <div style={{
