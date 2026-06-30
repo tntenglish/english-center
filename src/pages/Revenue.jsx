@@ -411,25 +411,26 @@ export default function Revenue() {
             minWidth: isMobile ? '300px' : '100%',
             paddingTop: '20px'
           }}>
-            {yearlyData.map((item, index) => {
-              const height = item.revenue > 0 ? (item.revenue / maxRevenue) * 100 : 0
-              return (
-                <div key={index} style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  height: '100%'
-                }}>
-                  <div style={{
-                    width: isMobile ? '16px' : '28px',
-                    height: `${Math.max(height * 0.9, 4)}%`,
-                    background: `hsl(${item.month * 30}, 70%, 50%)`,
-                    borderRadius: '4px 4px 0 0',
-                    transition: 'height 0.5s ease',
-                    position: 'relative',
-                    minHeight: '4px'
-                  }}>
+           {yearlyData.map((item, index) => {
+  const height = item.revenue > 0 ? (item.revenue / maxRevenue) * 100 : 0
+  return (
+    <div key={index} style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      height: '100%'
+    }}>
+      <div style={{
+        width: isMobile ? '16px' : '28px',
+        height: `${Math.max(height * 0.9, 3)}%`,
+        background: `hsl(${item.month * 30}, 70%, 50%)`,
+        borderRadius: '4px 4px 0 0',
+        transition: 'height 0.5s ease',
+        position: 'relative',
+        minHeight: '3px'
+      }}>
                     {item.revenue > 0 && !isMobile && (
                       <span style={{
                         position: 'absolute',
