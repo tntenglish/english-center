@@ -19,7 +19,12 @@ import {
   User,
   FileText,
   Receipt,
-  Wallet
+  Wallet,
+  Calendar,
+  BookOpen,
+  Menu,
+  X,
+  ChevronRight
 } from 'lucide-react'
 
 // Import Pages
@@ -33,6 +38,8 @@ import Attendance from './pages/Attendance'
 import Revenue from './pages/Revenue'
 import UserManagement from './pages/UserManagement'
 import ResetPassword from './pages/ResetPassword'
+import Schedule from './pages/Schedule'
+import Textbooks from './pages/Textbooks'
 
 // ==================== CONSTANTS ====================
 
@@ -43,22 +50,31 @@ const NAV_ITEMS = [
   { to: '/classes', label: 'Lớp học', icon: School, adminOnly: false },
   { to: '/teachers', label: 'Giáo viên', icon: UserCog, adminOnly: false },
   { to: '/attendance', label: 'Điểm danh', icon: CheckSquare, adminOnly: false },
+  { to: '/schedule', label: 'Lịch dạy', icon: Calendar, adminOnly: false },
+  { to: '/textbooks', label: 'Giáo trình', icon: BookOpen, adminOnly: false },
   { to: '/revenue', label: 'Doanh thu', icon: TrendingUp, adminOnly: true },
   { to: '/users', label: 'Phân quyền', icon: ShieldCheck, adminOnly: true },
 ]
 
+// Bottom NAV - 6 tab chính, căn giữa
 const BOTTOM_NAV = [
   { to: '/', label: 'Tổng quan', icon: LayoutDashboard, adminOnly: false },
   { to: '/leads', label: 'Leads', icon: Target, adminOnly: false },
   { to: '/students', label: 'Học viên', icon: Users, adminOnly: false },
-  { to: '/attendance', label: 'Điểm danh', icon: CheckSquare, adminOnly: false },
   { to: '/classes', label: 'Lớp học', icon: School, adminOnly: false },
+  { to: '/attendance', label: 'Điểm danh', icon: CheckSquare, adminOnly: false },
+  { to: '/schedule', label: 'Lịch dạy', icon: Calendar, adminOnly: false },
+]
+
+// Menu items cho mobile (các tab còn lại)
+const MOBILE_MENU_ITEMS = [
   { to: '/teachers', label: 'Giáo viên', icon: UserCog, adminOnly: false },
+  { to: '/textbooks', label: 'Giáo trình', icon: BookOpen, adminOnly: false },
   { to: '/revenue', label: 'Doanh thu', icon: TrendingUp, adminOnly: true },
   { to: '/users', label: 'Phân quyền', icon: ShieldCheck, adminOnly: true },
 ]
 
-// ==================== HOOKS =============
+// ==================== HOOKS ====================
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -273,8 +289,11 @@ function MobileHeader({ user, profile, signOut }) {
   const isMobile = useIsMobile()
   const isAdmin = profile?.role === 'admin'
   const [showMenu, setShowMenu] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   if (!isMobile) return null
+
+  const visibleMobileMenuItems = MOBILE_MENU_ITEMS.filter(item => !item.adminOnly || isAdmin)
 
   return (
     <>
@@ -312,19 +331,25 @@ function MobileHeader({ user, profile, signOut }) {
           </div>
         </div>
 
-        {/* User Menu */}
+        {/* Right side: Menu button + User avatar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{
-            fontSize: '10px',
-            padding: '2px 8px',
-            borderRadius: '12px',
-            fontWeight: 500,
-            backgroundColor: isAdmin ? '#dbeafe' : '#f3f4f6',
-            color: isAdmin ? '#1d4ed8' : '#6b7280'
-          }}>
-            {isAdmin ? 'Admin' : 'NV'}
-          </span>
-          
+          {/* Menu button for mobile */}
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#6b7280',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+          </button>
+
+          {/* User avatar */}
           <div style={{ position: 'relative' }}>
             {user?.user_metadata?.avatar_url ? (
               <img
@@ -362,7 +387,7 @@ function MobileHeader({ user, profile, signOut }) {
               </div>
             )}
 
-            {/* Dropdown Menu */}
+            {/* User Dropdown Menu */}
             {showMenu && (
               <>
                 <div
@@ -431,6 +456,70 @@ function MobileHeader({ user, profile, signOut }) {
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              top: '56px',
+              zIndex: 39,
+              background: 'rgba(0,0,0,0.3)'
+            }}
+            onClick={() => setShowMobileMenu(false)}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '56px',
+            right: 0,
+            width: '280px',
+            maxWidth: '80vw',
+            background: 'white',
+            zIndex: 40,
+            boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            borderBottomLeftRadius: '12px',
+            borderBottom: '1px solid #e5e7eb',
+            padding: '8px 0',
+            maxHeight: 'calc(100vh - 116px)',
+            overflowY: 'auto'
+          }}>
+            <div style={{ padding: '8px 16px 4px 16px', borderBottom: '1px solid #f3f4f6' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: 0 }}>
+                📋 Tất cả chức năng
+              </p>
+            </div>
+            {visibleMobileMenuItems.map(item => {
+              const Icon = item.icon
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setShowMobileMenu(false)}
+                  style={({ isActive }) => ({
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 16px',
+                    fontSize: '14px',
+                    textDecoration: 'none',
+                    color: isActive ? '#1d4ed8' : '#374151',
+                    backgroundColor: isActive ? '#eff6ff' : 'transparent',
+                    fontWeight: isActive ? 500 : 400,
+                    transition: 'all 0.2s',
+                    borderLeft: isActive ? '3px solid #2563eb' : '3px solid transparent'
+                  })}
+                >
+                  <Icon size={18} />
+                  {item.label}
+                  <ChevronRight size={16} style={{ marginLeft: 'auto', color: '#d1d5db' }} />
+                </NavLink>
+              )
+            })}
+          </div>
+        </>
+      )}
     </>
   )
 }
@@ -454,11 +543,11 @@ function BottomNav() {
       borderTop: '1px solid #e5e7eb',
       zIndex: 40,
       display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
       padding: '4px 0 6px',
       boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
       height: '60px',
-      overflowX: 'auto',
-      WebkitOverflowScrolling: 'touch'
     }}>
       {visibleNavItems.map(item => {
         const Icon = item.icon
@@ -468,14 +557,14 @@ function BottomNav() {
             to={item.to}
             end={item.to === '/'}
             style={{
-              flex: '1 0 auto',
-              minWidth: '56px',
-              maxWidth: '80px',
+              flex: '0 1 auto',
+              minWidth: '48px',
+              maxWidth: '70px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '4px 2px',
+              padding: '4px 8px',
               textDecoration: 'none',
               position: 'relative'
             }}
@@ -483,7 +572,7 @@ function BottomNav() {
             {({ isActive }) => (
               <>
                 <Icon
-                  size={22}
+                  size={isActive ? 22 : 20}
                   strokeWidth={isActive ? 2.5 : 2}
                   color={isActive ? '#2563eb' : '#6b7280'}
                 />
@@ -558,6 +647,8 @@ function Layout() {
             <Route path="/classes" element={<Classes />} />
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/attendance" element={<Attendance />} />
+            <Route path="/schedule" element={<Schedule />} />
+            <Route path="/textbooks" element={<Textbooks />} />
             <Route path="/revenue" element={
               isAdmin ? <Revenue /> : <Navigate to="/" replace />
             } />
@@ -588,7 +679,7 @@ function PublicRoute() {
   return <Login />
 }
 
-// ==================== APP ============
+// ==================== APP ====================
 
 export default function App() {
   return (
