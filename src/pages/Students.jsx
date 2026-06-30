@@ -1,8 +1,42 @@
+// src/pages/Students.jsx
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useIsMobile } from '../hooks/useIsMobile'
 import * as XLSX from 'xlsx'
+import {
+  Users,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Phone,
+  Mail,
+  Calendar,
+  User,
+  BookOpen,
+  Award,
+  MapPin,
+  DollarSign,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Save,
+  X,
+  Filter,
+  UserPlus,
+  UserCheck,
+  UserX,
+  Loader2,
+  ChevronRight,
+  School,
+  FileSpreadsheet,
+  Clock,
+  GraduationCap,
+  Home,
+  CalendarDays
+} from 'lucide-react'
 
 const STATUS_LABELS = {
   dang_hoc:   { label: 'Đang học',   color: 'bg-green-100 text-green-700' },
@@ -40,6 +74,10 @@ export default function Students() {
   const [showViewClassModal, setShowViewClassModal] = useState(false)
   const [studentClasses, setStudentClasses]         = useState([])
   const [loadingStudentClasses, setLoadingStudentClasses] = useState(false)
+  
+  // Mobile detail modal
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [detailStudent, setDetailStudent] = useState(null)
 
   useEffect(() => {
     fetchStudents()
@@ -242,6 +280,12 @@ export default function Students() {
     setShowForm(true)
   }
 
+  // Mở modal chi tiết trên mobile
+  function openDetailModal(student) {
+    setDetailStudent(student)
+    setShowDetailModal(true)
+  }
+
   const filtered = students.filter(s => {
     const matchSearch = s.full_name?.toLowerCase().includes(search.toLowerCase())
       || s.phone?.includes(search)
@@ -293,16 +337,20 @@ export default function Students() {
           cursor: 'pointer',
           background: hasClass ? '#9ca3af' : '#2563eb',
           color: 'white',
-          transition: 'all 0.2s'
+          transition: 'all 0.2s',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
         }}
       >
+        <School size={isMobile ? 12 : 14} />
         {hasClass ? 'Xem lớp' : 'Xếp lớp'}
       </button>
     )
   }
 
+  // Render mobile card - ĐƠN GIẢN: Tên, Trình độ, Ô tick, Nút xem chi tiết
   const renderMobileCard = (student) => {
-    const hasClass = studentClassStatus[student.id] || false
     return (
       <div key={student.id} style={{
         background: 'white',
@@ -312,72 +360,332 @@ export default function Students() {
         boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         border: '1px solid #f3f4f6'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '15px', color: '#1f2937' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '8px'
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, fontSize: '16px', color: '#1f2937' }}>
               {student.full_name}
             </div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-              📱 {student.phone}
+            <div style={{ 
+              fontSize: '13px', 
+              color: '#6b7280',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              marginTop: '2px'
+            }}>
+              <BookOpen size={14} />
+              {student.level || 'Chưa có trình độ'}
             </div>
-            {student.email && (
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                ✉️ {student.email}
-              </div>
-            )}
           </div>
           <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_LABELS[student.status]?.color}`}>
             {STATUS_LABELS[student.status]?.label}
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
-          <div>📚 {student.level || '—'}</div>
-          <div>💰 {student.tuition_fee ? Number(student.tuition_fee).toLocaleString('vi-VN') + 'đ' : '—'}</div>
-          <div style={{ gridColumn: '1/3' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={student.tuition_paid || false}
-                onChange={() => toggleTuitionPaid(student)}
-                style={{ width: '16px', height: '16px' }}
-              />
-              <span style={{ fontSize: '12px', color: student.tuition_paid ? '#16a34a' : '#6b7280' }}>
-                {student.tuition_paid ? '✅ Đã đóng học phí' : '❌ Chưa đóng học phí'}
-              </span>
-            </label>
-          </div>
-        </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingTop: '10px',
+          borderTop: '1px solid #f3f4f6'
+        }}>
+          <label style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            cursor: 'pointer',
+            fontSize: '13px',
+            color: student.tuition_paid ? '#16a34a' : '#6b7280'
+          }}>
+            <input
+              type="checkbox"
+              checked={student.tuition_paid || false}
+              onChange={() => toggleTuitionPaid(student)}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            {student.tuition_paid ? (
+              <CheckCircle size={16} color="#16a34a" />
+            ) : (
+              <XCircle size={16} color="#9ca3af" />
+            )}
+            <span>{student.tuition_paid ? 'Đã đóng học phí' : 'Chưa đóng học phí'}</span>
+          </label>
 
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          <StudentActionButton student={student} />
           <button
-            onClick={() => editStudent(student)}
+            onClick={() => openDetailModal(student)}
             style={{
-              padding: '4px 10px',
-              fontSize: isMobile ? '10px' : '11px',
-              background: 'none',
-              color: '#3b82f6',
-              border: '1px solid #dbeafe',
+              padding: '6px 14px',
+              fontSize: '13px',
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
               borderRadius: '6px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontWeight: 500
             }}
           >
-            Sửa
+            <Eye size={14} />
+            Xem chi tiết
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Mobile Detail Modal
+  const renderDetailModal = () => {
+    if (!detailStudent) return null
+    
+    const hasClass = studentClassStatus[detailStudent.id] || false
+    
+    return (
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        zIndex: 100,
+        animation: 'slideUp 0.3s ease'
+      }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '16px 16px 0 0',
+          width: '100%',
+          maxHeight: '80vh',
+          padding: '20px 16px 30px',
+          overflowY: 'auto',
+          boxShadow: '0 -10px 30px rgba(0,0,0,0.2)'
+        }}>
+          {/* Drag handle */}
+          <div style={{
+            width: '40px',
+            height: '4px',
+            background: '#d1d5db',
+            borderRadius: '2px',
+            margin: '0 auto 16px'
+          }} />
+          
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '16px'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
+                {detailStudent.full_name}
+              </h3>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_LABELS[detailStudent.status]?.color}`}>
+                {STATUS_LABELS[detailStudent.status]?.label}
+              </span>
+            </div>
+            <button
+              onClick={() => setShowDetailModal(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          {/* Thông tin chi tiết */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px',
+            marginBottom: '16px'
+          }}>
+            <div style={{
+              padding: '10px 12px',
+              background: '#f9fafb',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>📱 SĐT</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
+                {detailStudent.phone || '—'}
+              </div>
+            </div>
+            <div style={{
+              padding: '10px 12px',
+              background: '#f9fafb',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>📧 Email</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
+                {detailStudent.email || '—'}
+              </div>
+            </div>
+            <div style={{
+              padding: '10px 12px',
+              background: '#f9fafb',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>🎂 Ngày sinh</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
+                {detailStudent.date_of_birth || '—'}
+              </div>
+            </div>
+            <div style={{
+              padding: '10px 12px',
+              background: '#f9fafb',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>🚻 Giới tính</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
+                {detailStudent.gender === 'nam' ? 'Nam' : detailStudent.gender === 'nu' ? 'Nữ' : 'Khác'}
+              </div>
+            </div>
+            <div style={{
+              padding: '10px 12px',
+              background: '#f9fafb',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>📚 Trình độ</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
+                {detailStudent.level || '—'}
+              </div>
+            </div>
+            <div style={{
+              padding: '10px 12px',
+              background: '#f9fafb',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>🏠 Địa chỉ</div>
+              <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
+                {detailStudent.address || '—'}
+              </div>
+            </div>
+            <div style={{
+              padding: '10px 12px',
+              background: '#f9fafb',
+              borderRadius: '8px',
+              gridColumn: '1/3'
+            }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af' }}>💰 Học phí</div>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
+                {detailStudent.tuition_fee ? Number(detailStudent.tuition_fee).toLocaleString('vi-VN') + 'đ' : '—'}
+                <span style={{ 
+                  fontSize: '12px', 
+                  fontWeight: 400, 
+                  color: detailStudent.tuition_paid ? '#16a34a' : '#ef4444',
+                  marginLeft: '8px'
+                }}>
+                  {detailStudent.tuition_paid ? 'Đã đóng' : 'Chưa đóng'}
+                </span>
+              </div>
+            </div>
+            {detailStudent.note && (
+              <div style={{
+                padding: '10px 12px',
+                background: '#f9fafb',
+                borderRadius: '8px',
+                gridColumn: '1/3'
+              }}>
+                <div style={{ fontSize: '11px', color: '#9ca3af' }}>📝 Ghi chú</div>
+                <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
+                  {detailStudent.note}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => {
+                setShowDetailModal(false)
+                editStudent(detailStudent)
+              }}
+              style={{
+                flex: 1,
+                padding: '10px',
+                fontSize: '14px',
+                background: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                fontWeight: 500
+              }}
+            >
+              <Edit size={16} />
+              Sửa
+            </button>
+            <button
+              onClick={() => {
+                setShowDetailModal(false)
+                openClassModal(detailStudent)
+              }}
+              style={{
+                flex: 1,
+                padding: '10px',
+                fontSize: '14px',
+                background: hasClass ? '#9ca3af' : '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                fontWeight: 500
+              }}
+            >
+              <School size={16} />
+              {hasClass ? 'Xem lớp' : 'Xếp lớp'}
+            </button>
+          </div>
           <button
-            onClick={() => deleteStudent(student.id)}
+            onClick={() => {
+              if (confirm(`Xoá học viên "${detailStudent.full_name}"?`)) {
+                setShowDetailModal(false)
+                deleteStudent(detailStudent.id)
+              }
+            }}
             style={{
-              padding: '4px 10px',
-              fontSize: isMobile ? '10px' : '11px',
+              width: '100%',
+              padding: '10px',
+              marginTop: '8px',
+              fontSize: '14px',
               background: 'none',
               color: '#ef4444',
               border: '1px solid #fecaca',
-              borderRadius: '6px',
-              cursor: 'pointer'
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              fontWeight: 500
             }}
           >
-            Xoá
+            <Trash2 size={16} />
+            Xoá học viên
           </button>
         </div>
       </div>
@@ -391,6 +699,7 @@ export default function Students() {
       maxWidth: '100%',
       boxSizing: 'border-box'
     }}>
+      {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -400,7 +709,16 @@ export default function Students() {
         marginBottom: '16px'
       }}>
         <div>
-          <h2 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
+          <h2 style={{
+            fontSize: isMobile ? '18px' : '24px',
+            fontWeight: 600,
+            color: '#1f2937',
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <Users size={isMobile ? 20 : 24} color="#2563eb" />
             Quản lý Học viên
           </h2>
           <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
@@ -420,10 +738,14 @@ export default function Students() {
               cursor: 'pointer',
               fontWeight: 500,
               whiteSpace: 'nowrap',
-              flex: isMobile ? 1 : 'none'
+              flex: isMobile ? 1 : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            📊 Xuất Excel
+            <FileSpreadsheet size={16} />
+            Xuất Excel
           </button>
           <button
             onClick={() => { setForm(EMPTY_FORM); setShowForm(true) }}
@@ -437,34 +759,68 @@ export default function Students() {
               cursor: 'pointer',
               fontWeight: 500,
               whiteSpace: 'nowrap',
-              flex: isMobile ? 1 : 'none'
+              flex: isMobile ? 1 : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            + Thêm học viên
+            <Plus size={16} />
+            Thêm học viên
           </button>
         </div>
       </div>
 
+      {/* Search & Filter */}
       <div style={{
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
         gap: isMobile ? '8px' : '12px',
         marginBottom: '16px'
       }}>
-        <input
-          placeholder="Tìm tên, SĐT..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{
-            flex: 1,
-            padding: isMobile ? '8px 12px' : '8px 12px',
-            fontSize: isMobile ? '13px' : '14px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            outline: 'none',
-            width: isMobile ? '100%' : 'auto'
-          }}
-        />
+        <div style={{ flex: 1, position: 'relative' }}>
+          <Search size={16} style={{
+            position: 'absolute',
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#9ca3af'
+          }} />
+          <input
+            placeholder="Tìm tên, SĐT..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: isMobile ? '8px 12px 8px 36px' : '8px 12px 8px 36px',
+              fontSize: isMobile ? '13px' : '14px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              outline: 'none',
+              transition: 'border-color 0.2s'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <div style={{
           display: 'flex',
           gap: '6px',
@@ -489,9 +845,13 @@ export default function Students() {
                 whiteSpace: 'nowrap',
                 fontWeight: 500,
                 flexShrink: 0,
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
+              {filterStatus === k ? <CheckCircle size={12} /> : <Filter size={12} />}
               {v.label}
             </button>
           ))}
@@ -508,26 +868,47 @@ export default function Students() {
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 fontWeight: 500,
-                flexShrink: 0
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              ✕ Tất cả
+              <X size={12} />
+              Tất cả
             </button>
           )}
         </div>
       </div>
 
+      {/* Mobile View - Đơn giản */}
       {isMobile ? (
         <div>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</div>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+              <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
+              <p>Đang tải...</p>
+            </div>
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có học viên nào</div>
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              background: 'white',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <Users size={48} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+              <p style={{ color: '#6b7280' }}>Chưa có học viên nào</p>
+              <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>
+                {search || filterStatus ? 'Không tìm thấy kết quả phù hợp' : 'Hãy thêm học viên mới'}
+              </p>
+            </div>
           ) : (
             filtered.map(student => renderMobileCard(student))
           )}
         </div>
       ) : (
+        /* Desktop View - Giữ nguyên */
         <div style={{
           background: 'white',
           borderRadius: '12px',
@@ -551,9 +932,14 @@ export default function Students() {
             </thead>
             <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
               {loading ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+                  <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
+                  <p>Đang tải...</p>
+                </td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có học viên nào</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+                  Chưa có học viên nào
+                </td></tr>
               ) : filtered.map(s => (
                 <tr key={s.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '12px 16px' }}>
@@ -594,9 +980,13 @@ export default function Students() {
                           background: 'none',
                           color: '#3b82f6',
                           border: 'none',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <Edit size={14} />
                         Sửa
                       </button>
                       <button
@@ -607,9 +997,13 @@ export default function Students() {
                           background: 'none',
                           color: '#ef4444',
                           border: 'none',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <Trash2 size={14} />
                         Xoá
                       </button>
                     </div>
@@ -621,6 +1015,10 @@ export default function Students() {
         </div>
       )}
 
+      {/* Mobile Detail Modal */}
+      {showDetailModal && renderDetailModal()}
+
+      {/* Class Modal - Giữ nguyên */}
       {showClassModal && selectedStudent && (
         <div style={{
           position: 'fixed',
@@ -640,7 +1038,8 @@ export default function Students() {
             padding: isMobile ? '20px 16px' : '24px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
           }}>
-            <h3 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, color: '#1f2937', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, color: '#1f2937', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <School size={20} color="#2563eb" />
               Xếp lớp cho học viên
             </h3>
             <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
@@ -683,9 +1082,18 @@ export default function Students() {
                   borderRadius: '8px',
                   fontWeight: 500,
                   cursor: 'pointer',
-                  opacity: assigning ? 0.6 : 1
+                  opacity: assigning ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
               >
+                {assigning ? (
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <UserPlus size={16} />
+                )}
                 {assigning ? 'Đang xếp...' : 'Xếp lớp'}
               </button>
               <button
@@ -708,6 +1116,7 @@ export default function Students() {
         </div>
       )}
 
+      {/* View Class Modal - Giữ nguyên */}
       {showViewClassModal && selectedStudent && (
         <div style={{
           position: 'fixed',
@@ -729,7 +1138,8 @@ export default function Students() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
+                <h3 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <School size={20} color="#2563eb" />
                   Lớp đã xếp
                 </h3>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
@@ -741,16 +1151,20 @@ export default function Students() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '20px',
                   color: '#9ca3af',
                   cursor: 'pointer',
                   padding: '4px'
                 }}
-              >✕</button>
+              >
+                <X size={20} />
+              </button>
             </div>
 
             {loadingStudentClasses ? (
-              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px 0' }}>Đang tải...</p>
+              <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px 0' }}>
+                <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+                <p>Đang tải...</p>
+              </p>
             ) : studentClasses.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#9ca3af', padding: '20px 0' }}>Chưa có lớp nào</p>
             ) : (
@@ -788,9 +1202,13 @@ export default function Students() {
                           background: 'none',
                           border: 'none',
                           cursor: 'pointer',
-                          fontWeight: 500
+                          fontWeight: 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <Eye size={14} />
                         Xem lớp
                       </button>
                       <button
@@ -801,9 +1219,13 @@ export default function Students() {
                           color: '#ef4444',
                           background: 'none',
                           border: 'none',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <Trash2 size={14} />
                         Xoá
                       </button>
                     </div>
@@ -824,9 +1246,14 @@ export default function Students() {
                   border: 'none',
                   borderRadius: '8px',
                   fontWeight: 500,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
               >
+                <Plus size={16} />
                 Xếp thêm lớp
               </button>
               <button
@@ -849,6 +1276,7 @@ export default function Students() {
         </div>
       )}
 
+      {/* Form Modal - Giữ nguyên */}
       {showForm && (
         <div style={{
           position: 'fixed',
@@ -870,14 +1298,41 @@ export default function Students() {
             padding: isMobile ? '20px 16px' : '24px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
           }}>
-            <h3 style={{
-              fontSize: isMobile ? '16px' : '18px',
-              fontWeight: 600,
-              color: '#1f2937',
-              marginBottom: '16px'
-            }}>
-              {form.id ? 'Cập nhật học viên' : 'Thêm học viên mới'}
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{
+                fontSize: isMobile ? '16px' : '18px',
+                fontWeight: 600,
+                color: '#1f2937',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                {form.id ? (
+                  <>
+                    <Edit size={20} color="#2563eb" />
+                    Cập nhật học viên
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={20} color="#2563eb" />
+                    Thêm học viên mới
+                  </>
+                )}
+              </h3>
+              <button
+                onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#9ca3af',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             <div style={{
               display: 'grid',
@@ -1070,9 +1525,18 @@ export default function Students() {
                   borderRadius: '8px',
                   fontWeight: 500,
                   cursor: 'pointer',
-                  opacity: saving ? 0.6 : 1
+                  opacity: saving ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
               >
+                {saving ? (
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <Save size={16} />
+                )}
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
               <button
@@ -1094,6 +1558,20 @@ export default function Students() {
           </div>
         </div>
       )}
+
+      {/* Animation styles */}
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+          }
+        `}
+      </style>
     </div>
   )
 }
