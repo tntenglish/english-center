@@ -1,12 +1,57 @@
+// src/pages/Classes.jsx
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useIsMobile } from '../hooks/useIsMobile'
+import {
+  School,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Users,
+  BookOpen,
+  User,
+  MapPin,
+  Calendar,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Save,
+  X,
+  Filter,
+  UserPlus,
+  UserCheck,
+  UserX,
+  Loader2,
+  ChevronRight,
+  GraduationCap,
+  Building2,
+  CalendarDays,
+  FileText
+} from 'lucide-react'
 
 const STATUS_LABELS = {
-  cho_khai_giang: { label: 'Chờ khai giảng', color: 'bg-yellow-100 text-yellow-700' },
-  dang_hoc:       { label: 'Đang học',        color: 'bg-green-100 text-green-700' },
-  ket_thuc:       { label: 'Kết thúc',        color: 'bg-gray-100 text-gray-600' },
-  huy:            { label: 'Huỷ',             color: 'bg-red-100 text-red-700' },
+  cho_khai_giang: { 
+    label: 'Chờ khai giảng', 
+    color: 'bg-yellow-100 text-yellow-700',
+    icon: Clock
+  },
+  dang_hoc: { 
+    label: 'Đang học', 
+    color: 'bg-green-100 text-green-700',
+    icon: CheckCircle
+  },
+  ket_thuc: { 
+    label: 'Kết thúc', 
+    color: 'bg-gray-100 text-gray-600',
+    icon: XCircle
+  },
+  huy: { 
+    label: 'Huỷ', 
+    color: 'bg-red-100 text-red-700',
+    icon: AlertCircle
+  },
 }
 
 const EMPTY_FORM = {
@@ -283,8 +328,9 @@ export default function Classes() {
           <div style={{ fontWeight: 600, fontSize: '15px', color: '#1f2937' }}>
             {classItem.name}
           </div>
-          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-            📚 {classItem.courses?.name || '—'}
+          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <BookOpen size={12} />
+            {classItem.courses?.name || '—'}
           </div>
         </div>
         <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_LABELS[classItem.status]?.color}`}>
@@ -293,10 +339,22 @@ export default function Classes() {
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
-        <div>👨‍🏫 {classItem.teachers?.full_name || '—'}</div>
-        <div>🏫 {classItem.room || '—'}</div>
-        <div>📅 {classItem.schedule || '—'}</div>
-        <div>👥 {classItem.max_students}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <User size={12} />
+          {classItem.teachers?.full_name || '—'}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <MapPin size={12} />
+          {classItem.room || '—'}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Calendar size={12} />
+          {classItem.schedule || '—'}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Users size={12} />
+          {classItem.max_students}
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -311,10 +369,14 @@ export default function Classes() {
             border: 'none',
             borderRadius: '6px',
             fontWeight: 500,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
           }}
         >
-          📋 DS học viên
+          <Users size={12} />
+          DS học viên
         </button>
         <button 
           onClick={() => editClass(classItem)} 
@@ -325,9 +387,13 @@ export default function Classes() {
             color: '#3b82f6',
             border: '1px solid #dbeafe',
             borderRadius: '6px',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
           }}
         >
+          <Edit size={12} />
           Sửa
         </button>
         <button 
@@ -339,9 +405,13 @@ export default function Classes() {
             color: '#ef4444',
             border: '1px solid #fecaca',
             borderRadius: '6px',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
           }}
         >
+          <Trash2 size={12} />
           Xoá
         </button>
       </div>
@@ -355,6 +425,7 @@ export default function Classes() {
       maxWidth: '100%',
       boxSizing: 'border-box'
     }}>
+      {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -364,7 +435,16 @@ export default function Classes() {
         marginBottom: '16px'
       }}>
         <div>
-          <h2 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
+          <h2 style={{
+            fontSize: isMobile ? '18px' : '24px',
+            fontWeight: 600,
+            color: '#1f2937',
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <School size={isMobile ? 20 : 24} color="#2563eb" />
             Quản lý Lớp học
           </h2>
           <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
@@ -382,33 +462,67 @@ export default function Classes() {
             borderRadius: '8px',
             cursor: 'pointer',
             fontWeight: 500,
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          + Thêm lớp
+          <Plus size={16} />
+          Thêm lớp
         </button>
       </div>
 
+      {/* Search and Filter */}
       <div style={{
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
         gap: isMobile ? '8px' : '12px',
         marginBottom: '16px'
       }}>
-        <input
-          placeholder="Tìm tên lớp..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{
-            flex: 1,
-            padding: isMobile ? '8px 12px' : '8px 12px',
-            fontSize: isMobile ? '13px' : '14px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            outline: 'none',
-            width: isMobile ? '100%' : 'auto'
-          }}
-        />
+        <div style={{ flex: 1, position: 'relative' }}>
+          <Search size={16} style={{
+            position: 'absolute',
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#9ca3af'
+          }} />
+          <input
+            placeholder="Tìm tên lớp..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: isMobile ? '8px 12px 8px 36px' : '8px 12px 8px 36px',
+              fontSize: isMobile ? '13px' : '14px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              outline: 'none',
+              transition: 'border-color 0.2s'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <div style={{
           display: 'flex',
           gap: '6px',
@@ -433,9 +547,13 @@ export default function Classes() {
                 whiteSpace: 'nowrap',
                 fontWeight: 500,
                 flexShrink: 0,
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
+              {filterStatus === k ? <CheckCircle size={12} /> : <Filter size={12} />}
               {v.label}
             </button>
           ))}
@@ -452,26 +570,47 @@ export default function Classes() {
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 fontWeight: 500,
-                flexShrink: 0
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              ✕ Tất cả
+              <X size={12} />
+              Tất cả
             </button>
           )}
         </div>
       </div>
 
+      {/* Mobile View */}
       {isMobile ? (
         <div>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</div>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+              <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+              <p>Đang tải...</p>
+            </div>
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có lớp nào</div>
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              background: 'white',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <School size={48} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+              <p style={{ color: '#6b7280' }}>Chưa có lớp nào</p>
+              <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>
+                {search || filterStatus ? 'Không tìm thấy kết quả phù hợp' : 'Hãy thêm lớp học mới'}
+              </p>
+            </div>
           ) : (
             filtered.map(classItem => renderMobileCard(classItem))
           )}
         </div>
       ) : (
+        /* Desktop View */
         <div style={{
           background: 'white',
           borderRadius: '12px',
@@ -494,9 +633,14 @@ export default function Classes() {
             </thead>
             <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
               {loading ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Đang tải...</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+                  <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
+                  <p>Đang tải...</p>
+                </td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>Chưa có lớp nào</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+                  Chưa có lớp nào
+                </td></tr>
               ) : filtered.map(c => (
                 <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '12px 16px', fontWeight: 500, color: '#1f2937' }}>{c.name}</td>
@@ -522,9 +666,13 @@ export default function Classes() {
                           border: 'none',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontWeight: 500
+                          fontWeight: 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <Users size={12} />
                         DS học viên
                       </button>
                       <button 
@@ -535,9 +683,13 @@ export default function Classes() {
                           background: 'none',
                           color: '#3b82f6',
                           border: 'none',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <Edit size={12} />
                         Sửa
                       </button>
                       <button 
@@ -548,9 +700,13 @@ export default function Classes() {
                           background: 'none',
                           color: '#ef4444',
                           border: 'none',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <Trash2 size={12} />
                         Xoá
                       </button>
                     </div>
@@ -562,6 +718,7 @@ export default function Classes() {
         </div>
       )}
 
+      {/* Student Modal */}
       {showStudentModal && selectedClass && (
         <div style={{
           position: 'fixed',
@@ -586,7 +743,8 @@ export default function Classes() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, color: '#1f2937', margin: 0 }}>
+                <h3 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={20} color="#2563eb" />
                   Danh sách học viên
                 </h3>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
@@ -606,13 +764,12 @@ export default function Classes() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '20px',
                   color: '#9ca3af',
                   cursor: 'pointer',
                   padding: '4px'
                 }}
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
 
@@ -653,10 +810,18 @@ export default function Classes() {
                   fontWeight: 500,
                   cursor: 'pointer',
                   opacity: addingStudent ? 0.6 : 1,
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                {addingStudent ? 'Đang thêm...' : '+ Thêm'}
+                {addingStudent ? (
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <UserPlus size={16} />
+                )}
+                {addingStudent ? 'Đang thêm...' : 'Thêm'}
               </button>
             </div>
 
@@ -669,9 +834,15 @@ export default function Classes() {
               {isMobile ? (
                 <div style={{ padding: '12px' }}>
                   {loadingStudents ? (
-                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af' }}>Đang tải...</div>
+                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af' }}>
+                      <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+                      <p>Đang tải...</p>
+                    </div>
                   ) : classStudents.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af' }}>Chưa có học viên nào</div>
+                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af' }}>
+                      <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+                      <p>Chưa có học viên nào</p>
+                    </div>
                   ) : (
                     classStudents.map((cs, index) => (
                       <div key={cs.id} style={{
@@ -698,9 +869,13 @@ export default function Classes() {
                             background: 'none',
                             border: '1px solid #fecaca',
                             borderRadius: '4px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}
                         >
+                          <Trash2 size={14} />
                           Xoá
                         </button>
                       </div>
@@ -719,9 +894,14 @@ export default function Classes() {
                   </thead>
                   <tbody style={{ borderTop: '1px solid #f3f4f6' }}>
                     {loadingStudents ? (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af' }}>Đang tải...</td></tr>
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af' }}>
+                        <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+                        <p>Đang tải...</p>
+                      </td></tr>
                     ) : classStudents.length === 0 ? (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af' }}>Chưa có học viên nào</td></tr>
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af' }}>
+                        Chưa có học viên nào
+                      </td></tr>
                     ) : (
                       classStudents.map((cs, index) => (
                         <tr key={cs.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
@@ -741,9 +921,13 @@ export default function Classes() {
                                 color: '#ef4444',
                                 background: 'none',
                                 border: 'none',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
                               }}
                             >
+                              <Trash2 size={14} />
                               Xoá
                             </button>
                           </td>
@@ -778,6 +962,7 @@ export default function Classes() {
         </div>
       )}
 
+      {/* Form Modal */}
       {showForm && (
         <div style={{
           position: 'fixed',
@@ -799,14 +984,41 @@ export default function Classes() {
             padding: isMobile ? '20px 16px' : '24px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
           }}>
-            <h3 style={{
-              fontSize: isMobile ? '16px' : '18px',
-              fontWeight: 600,
-              color: '#1f2937',
-              marginBottom: '16px'
-            }}>
-              {form.id ? 'Cập nhật lớp học' : 'Thêm lớp học mới'}
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{
+                fontSize: isMobile ? '16px' : '18px',
+                fontWeight: 600,
+                color: '#1f2937',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                {form.id ? (
+                  <>
+                    <Edit size={20} color="#2563eb" />
+                    Cập nhật lớp học
+                  </>
+                ) : (
+                  <>
+                    <Plus size={20} color="#2563eb" />
+                    Thêm lớp học mới
+                  </>
+                )}
+              </h3>
+              <button
+                onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#9ca3af',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
             
             <div style={{
               display: 'grid',
@@ -995,9 +1207,18 @@ export default function Classes() {
                   borderRadius: '8px',
                   fontWeight: 500,
                   cursor: 'pointer',
-                  opacity: saving ? 0.6 : 1
+                  opacity: saving ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
               >
+                {saving ? (
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <Save size={16} />
+                )}
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
               <button 
@@ -1022,6 +1243,16 @@ export default function Classes() {
           </div>
         </div>
       )}
+
+      {/* Animation styles */}
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   )
 }

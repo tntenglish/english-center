@@ -35,7 +35,8 @@ import {
   Clock,
   GraduationCap,
   Home,
-  CalendarDays
+  CalendarDays,
+  VenetianMask
 } from 'lucide-react'
 
 const STATUS_LABELS = {
@@ -440,7 +441,7 @@ export default function Students() {
     )
   }
 
-  // Mobile Detail Modal
+  // Mobile Detail Modal - Đã thay thế tất cả emoji bằng Lucide Icons
   const renderDetailModal = () => {
     if (!detailStudent) return null
     
@@ -504,7 +505,7 @@ export default function Students() {
             </button>
           </div>
 
-          {/* Thông tin chi tiết */}
+          {/* Thông tin chi tiết - Đã thay thế tất cả emoji */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
@@ -516,7 +517,10 @@ export default function Students() {
               background: '#f9fafb',
               borderRadius: '8px'
             }}>
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>📱 SĐT</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Phone size={14} />
+                SĐT
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
                 {detailStudent.phone || '—'}
               </div>
@@ -526,7 +530,10 @@ export default function Students() {
               background: '#f9fafb',
               borderRadius: '8px'
             }}>
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>📧 Email</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Mail size={14} />
+                Email
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
                 {detailStudent.email || '—'}
               </div>
@@ -536,7 +543,10 @@ export default function Students() {
               background: '#f9fafb',
               borderRadius: '8px'
             }}>
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>🎂 Ngày sinh</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CalendarDays size={14} />
+                Ngày sinh
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
                 {detailStudent.date_of_birth || '—'}
               </div>
@@ -546,7 +556,10 @@ export default function Students() {
               background: '#f9fafb',
               borderRadius: '8px'
             }}>
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>🚻 Giới tính</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <VenetianMask size={14} />
+                Giới tính
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
                 {detailStudent.gender === 'nam' ? 'Nam' : detailStudent.gender === 'nu' ? 'Nữ' : 'Khác'}
               </div>
@@ -556,7 +569,10 @@ export default function Students() {
               background: '#f9fafb',
               borderRadius: '8px'
             }}>
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>📚 Trình độ</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <BookOpen size={14} />
+                Trình độ
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
                 {detailStudent.level || '—'}
               </div>
@@ -566,7 +582,10 @@ export default function Students() {
               background: '#f9fafb',
               borderRadius: '8px'
             }}>
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>🏠 Địa chỉ</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={14} />
+                Địa chỉ
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
                 {detailStudent.address || '—'}
               </div>
@@ -577,7 +596,10 @@ export default function Students() {
               borderRadius: '8px',
               gridColumn: '1/3'
             }}>
-              <div style={{ fontSize: '11px', color: '#9ca3af' }}>💰 Học phí</div>
+              <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <DollarSign size={14} />
+                Học phí
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
                 {detailStudent.tuition_fee ? Number(detailStudent.tuition_fee).toLocaleString('vi-VN') + 'đ' : '—'}
                 <span style={{ 
@@ -586,7 +608,7 @@ export default function Students() {
                   color: detailStudent.tuition_paid ? '#16a34a' : '#ef4444',
                   marginLeft: '8px'
                 }}>
-                  {detailStudent.tuition_paid ? 'Đã đóng' : 'Chưa đóng'}
+                  {detailStudent.tuition_paid ? '✅ Đã đóng' : '❌ Chưa đóng'}
                 </span>
               </div>
             </div>
@@ -597,7 +619,10 @@ export default function Students() {
                 borderRadius: '8px',
                 gridColumn: '1/3'
               }}>
-                <div style={{ fontSize: '11px', color: '#9ca3af' }}>📝 Ghi chú</div>
+                <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <AlertCircle size={14} />
+                  Ghi chú
+                </div>
                 <div style={{ fontSize: '14px', fontWeight: 500, color: '#1f2937' }}>
                   {detailStudent.note}
                 </div>
